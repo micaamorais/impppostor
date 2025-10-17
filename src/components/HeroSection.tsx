@@ -15,7 +15,7 @@ const HeroSection = () => {
       <div className="container mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left space-y-6 animate-fade-in">
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-gradient leading-tight">
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-gradient leading-tight animate-title">
               IMPOSTOR
             </h1>
             <p className="text-2xl md:text-3xl text-muted-foreground font-medium">
