@@ -10,20 +10,20 @@ const AboutSection = () => {
             Acerca del juego
           </h2>
           <p className="text-xl text-muted-foreground">
-            La historia detrás de IMPOSTOR
+            La historia detrás de PREPUSTOR
           </p>
         </div>
 
         <Card className="p-8 md:p-12 bg-card border-2 border-border space-y-8">
           <div className="space-y-4">
             <p className="text-lg text-foreground leading-relaxed">
-              <span className="text-2xl font-bold text-primary">Impostor</span> nació entre amigos 
-              que querían un juego rápido y divertido para descubrir quién miente mejor. 
-              La idea era simple: crear un momento de risas, tensión y deducción social sin complicaciones.
+              <span className="text-2xl font-bold text-primary">Prepustor</span> nació entre una familita 
+              que quería un juego rápido y divertido para descubrir quién miente mejor. 
+              La idea es simple: crear un momento de risas en los chupistreams.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed">
               En cada partida, las palabras se convierten en pistas, las pistas en sospechas, 
-              y las sospechas en acusaciones. ¿Podrás mantener tu secreto o serás descubierto?
+              y las sospechas en acusaciones. ¿Vas a poder sobrevivir a los lotsos?
             </p>
           </div>
 
@@ -32,9 +32,9 @@ const AboutSection = () => {
               <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-2xl mx-auto">
                 <Heart className="w-8 h-8 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-bold">Hecho con pasión</h3>
+              <h3 className="text-xl font-bold">Hecho con cariño</h3>
               <p className="text-sm text-muted-foreground">
-                Creado por jugadores, para jugadores
+                Creado por lotsos, para lotsos
               </p>
             </div>
             
@@ -44,7 +44,7 @@ const AboutSection = () => {
               </div>
               <h3 className="text-xl font-bold">Para todos</h3>
               <p className="text-sm text-muted-foreground">
-                Fácil de aprender, difícil de dominar
+                Fácil de jugar, difícil de ganar
               </p>
             </div>
             
@@ -54,16 +54,16 @@ const AboutSection = () => {
               </div>
               <h3 className="text-xl font-bold">Partidas rápidas</h3>
               <p className="text-sm text-muted-foreground">
-                Diversión instantánea en cada ronda
+                Diversión en cada ronda
               </p>
             </div>
           </div>
 
           <div className="pt-8 border-t border-border">
             <p className="text-center text-muted-foreground">
-              ¿Tienes preguntas o sugerencias? Escríbenos a{" "}
-              <a href="mailto:hola@impostorgame.com" className="text-primary hover:text-primary-glow transition-colors font-semibold">
-                hola@impostorgame.com
+              ¿Sugerencias? Escribí a moraamz (discord) o a{" "}
+              <a href="mailto:m.morais7372@gmail.com" className="text-primary hover:text-primary-glow transition-colors font-semibold">
+                m.morais7372@gmail.com
               </a>
             </p>
           </div>
