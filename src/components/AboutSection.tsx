@@ -17,7 +17,7 @@ const AboutSection = () => {
         <Card className="p-8 md:p-12 bg-card border-2 border-border space-y-8">
           <div className="space-y-4">
             <p className="text-lg text-foreground leading-relaxed">
-              <span className="text-1xl font-bold text-primary">Prepustor</span> nació entre una familita 
+              <span className="text-1.5xl font-bold text-primary">Prepustor</span> nació entre una familita 
               que quería un juego rápido y divertido para descubrir quién miente mejor. 
               La idea es simple: crear un momento de risas en los chupistreams.
             </p>
