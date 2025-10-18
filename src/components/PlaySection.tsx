@@ -198,20 +198,19 @@ const PlaySection = () => {
                 </>
               )}
 
-              {room.status === 'playing' || (room.current_round && room.current_round > 0) ? (
+              {room.status === 'playing' && currentRound ? (
                  <GamePhase
                    roomId={room.id}
-                   currentRound={currentRound || {
-                     id: 'temp-round',
-                     room_id: room.id,
-                     round_number: room.current_round || 1,
-                     secret_word: '',
-                     status: 'waiting_clues',
-                     current_turn_player_id: players[0]?.id || null,
-                   }}
+                   currentRound={currentRound}
                    players={players}
                    currentPlayerId={playerId}
                  />
+               ) : room.status === 'playing' ? (
+                 <div className="text-center p-6 bg-muted rounded-lg">
+                   <p className="text-lg text-muted-foreground">
+                     Cargando ronda...
+                   </p>
+                 </div>
                ) : null}
 
               {room.status === 'finished' && (
