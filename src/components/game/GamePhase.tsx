@@ -60,136 +60,150 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   // Estado para almacenar la palabra secreta real
   const [realSecretWord, setRealSecretWord] = useState<string | null>(null);
-  const [effectiveRoundId, setEffectiveRoundId] = useState<string>(currentRound.id);
+  const [effectiveRoundId, setEffectiveRoundId] = useState<string | null>(
+    currentRound?.id && isUuid(currentRound.id) ? currentRound.id : null
+  );
 
+  // Resolver UUID real de la ronda si viene 'temp-round' o null
   useEffect(() => {
-    // Resolver el ID real de la ronda y la palabra secreta
-    const resolveRound = async () => {
+    let cancelled = false;
+    const resolveRoundId = async () => {
+      if (effectiveRoundId && isUuid(effectiveRoundId)) return; // ya válido
+      if (!currentRound) return;
       try {
-        if (currentRound.id === 'temp-round') {
-          const { data, error } = await supabase
-            .from('rounds')
-            .select('id, secret_word')
-            .eq('room_id', roomId)
-            .eq('round_number', currentRound.round_number)
-            .single();
-          if (error) throw error;
-          if (data) {
-            setEffectiveRoundId(data.id);
-            setRealSecretWord(data.secret_word);
-          }
-        } else {
-          setEffectiveRoundId(currentRound.id);
-          setRealSecretWord(currentRound.secret_word || null);
+        const { data, error } = await supabase
+          .from('rounds')
+          .select('id, secret_word')
+          .eq('room_id', currentRound.room_id)
+          .eq('round_number', currentRound.round_number)
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        if (!cancelled && data?.id && isUuid(data.id)) {
+          setEffectiveRoundId(data.id);
+          if (data.secret_word) setRealSecretWord(data.secret_word);
         }
       } catch (err) {
-        console.error('Error resolviendo ronda real:', err);
+        console.error('resolveRoundId error', err);
       }
     };
-    resolveRound();
-  }, [roomId, currentRound.id, currentRound.round_number]);
+    resolveRoundId();
+    return () => { cancelled = true; };
+  }, [currentRound?.room_id, currentRound?.round_number]);
 
+  // Validar UUID helper
+  function isUuid(val: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  // Deshabilitar acciones si round_id inválido
+  const roundIdInvalid = !effectiveRoundId || !isUuid(effectiveRoundId);
+
+  // Suscripción y cargas iniciales de pistas usando effectiveRoundId
   useEffect(() => {
-    // Suscribirse a clues con el round_id efectivo
-    const cluesChannel = supabase
-      .channel('clues-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clues',
-          filter: `round_id=eq.${effectiveRoundId}`
-        },
-        async () => {
-          const { data } = await supabase
-            .from('clues')
-            .select('*')
-            .eq('round_id', effectiveRoundId);
-          if (data) setClues(data);
-        }
-      )
-      .subscribe();
-  
-  // Obtener clues iniciales
-  const fetchClues = async () => {
-    const { data } = await supabase
-      .from('clues')
-      .select('*')
-      .eq('round_id', effectiveRoundId);
-    if (data) setClues(data);
-  };
-  fetchClues();
-
-  // Verificar si ya envió su pista
-  if (currentPlayerId) {
-    const checkClue = async () => {
-      const { data } = await supabase
+    if (roundIdInvalid) return;
+    const fetchClues = async () => {
+      const { data, error } = await supabase
         .from('clues')
         .select('*')
-        .eq('round_id', effectiveRoundId)
-        .eq('player_id', currentPlayerId)
-        .single();
-      if (data) setHasSubmittedClue(true);
+        .eq('round_id', effectiveRoundId);
+      if (!error && data) setClues(data);
+    
+      // Verificar si el jugador ya envió su pista
+      if (currentPlayerId) {
+        const { data: myClue } = await supabase
+          .from('clues')
+          .select('id')
+          .eq('round_id', effectiveRoundId)
+          .eq('player_id', currentPlayerId)
+          .limit(1);
+        if (myClue && myClue.length > 0) setHasSubmittedClue(true);
+      }
     };
-    checkClue();
-  }
-
-  return () => {
-    supabase.removeChannel(cluesChannel);
-  };
-  }, [effectiveRoundId, currentPlayerId]);
-
-  useEffect(() => {
-    // Suscribirse a votos con el round_id efectivo
-    const votesChannel = supabase
-      .channel('votes-changes')
+  
+    fetchClues();
+  
+    const channel = supabase
+      .channel(`clues-${effectiveRoundId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
-          table: 'votes',
-          filter: `round_id=eq.${effectiveRoundId}`
+          table: 'clues',
+          filter: `round_id=eq.${effectiveRoundId}`,
         },
-        async () => {
-          const { data } = await supabase
-            .from('votes')
-            .select('*')
-            .eq('round_id', effectiveRoundId);
-          if (data) setVotes(data);
+        (payload) => {
+          setClues((prev) => [...prev, payload.new as any]);
         }
       )
       .subscribe();
   
-  // Obtener votos iniciales
-  const fetchVotes = async () => {
-    const { data } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('round_id', effectiveRoundId);
-    if (data) setVotes(data);
-  };
-  fetchVotes();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [effectiveRoundId, roundIdInvalid, currentPlayerId]);
 
-  // Verificar si ya votó
-  if (currentPlayerId) {
-    const checkVote = async () => {
-      const { data } = await supabase
+  // Suscripción y cargas iniciales de votos usando effectiveRoundId
+  useEffect(() => {
+    if (roundIdInvalid) return;
+    const fetchVotes = async () => {
+      const { data, error } = await supabase
         .from('votes')
         .select('*')
-        .eq('round_id', effectiveRoundId)
-        .eq('voter_id', currentPlayerId)
-        .single();
-      if (data) setHasVoted(true);
+        .eq('round_id', effectiveRoundId);
+      if (!error && data) setVotes(data);
+    
+      // Verificar si el jugador ya votó
+      if (currentPlayerId) {
+        const { data: myVote } = await supabase
+          .from('votes')
+          .select('id')
+          .eq('round_id', effectiveRoundId)
+          .eq('voter_id', currentPlayerId)
+          .limit(1);
+        if (myVote && myVote.length > 0) setHasVoted(true);
+      }
     };
-    checkVote();
+  
+    fetchVotes();
+  
+    const channel = supabase
+      .channel(`votes-${effectiveRoundId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'votes',
+          filter: `round_id=eq.${effectiveRoundId}`,
+        },
+        (payload) => {
+          setVotes((prev) => [...prev, payload.new as any]);
+        }
+      )
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [effectiveRoundId, roundIdInvalid, currentPlayerId]);
+
+  // Eliminado duplicado: los handlers canónicos están más abajo y usan columnas válidas (clue_text, voted_for_id) y validación de UUID.
+
+  // Mostrar loader si round_id inválido
+  if (roundIdInvalid) {
+    return (
+      <div className="text-center p-6 bg-muted rounded-lg">
+        <p className="text-lg text-muted-foreground">Cargando ronda real...</p>
+      </div>
+    );
   }
 
-  return () => {
-    supabase.removeChannel(votesChannel);
-  };
-  }, [effectiveRoundId, currentPlayerId]);
+  // Suscripción de clues consolidada arriba; eliminado duplicado.
+
+
+  // Suscripción de votes consolidada arriba; eliminado duplicado.
 
   const handleSubmitClue = async () => {
     if (!clue.trim() || !currentPlayerId || !effectiveRoundId) return;
