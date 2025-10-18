@@ -60,35 +60,37 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   // Estado para almacenar la palabra secreta real
   const [realSecretWord, setRealSecretWord] = useState<string | null>(null);
+  const [effectiveRoundId, setEffectiveRoundId] = useState<string>(currentRound.id);
 
-  // Obtener la palabra secreta real si estamos usando un ID temporal
   useEffect(() => {
-    console.log("Current round data:", currentRound);
-    
-    const fetchRealRound = async () => {
-      if (currentRound.id === 'temp-round') {
-        try {
+    // Resolver el ID real de la ronda y la palabra secreta
+    const resolveRound = async () => {
+      try {
+        if (currentRound.id === 'temp-round') {
           const { data, error } = await supabase
             .from('rounds')
-            .select('secret_word')
+            .select('id, secret_word')
             .eq('room_id', roomId)
             .eq('round_number', currentRound.round_number)
             .single();
-            
           if (error) throw error;
           if (data) {
-            console.log("Palabra secreta real obtenida:", data.secret_word);
+            setEffectiveRoundId(data.id);
             setRealSecretWord(data.secret_word);
           }
-        } catch (err) {
-          console.error("Error al obtener la palabra secreta:", err);
+        } else {
+          setEffectiveRoundId(currentRound.id);
+          setRealSecretWord(currentRound.secret_word || null);
         }
+      } catch (err) {
+        console.error('Error resolviendo ronda real:', err);
       }
     };
-    
-    fetchRealRound();
-    
-    // Suscribirse a clues
+    resolveRound();
+  }, [roomId, currentRound.id, currentRound.round_number]);
+
+  useEffect(() => {
+    // Suscribirse a clues con el round_id efectivo
     const cluesChannel = supabase
       .channel('clues-changes')
       .on(
@@ -97,49 +99,49 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           event: '*',
           schema: 'public',
           table: 'clues',
-          filter: `round_id=eq.${currentRound.id}`
+          filter: `round_id=eq.${effectiveRoundId}`
         },
         async () => {
           const { data } = await supabase
             .from('clues')
             .select('*')
-            .eq('round_id', currentRound.id);
+            .eq('round_id', effectiveRoundId);
           if (data) setClues(data);
         }
       )
       .subscribe();
+  
+  // Obtener clues iniciales
+  const fetchClues = async () => {
+    const { data } = await supabase
+      .from('clues')
+      .select('*')
+      .eq('round_id', effectiveRoundId);
+    if (data) setClues(data);
+  };
+  fetchClues();
 
-    // Obtener clues iniciales
-    const fetchClues = async () => {
+  // Verificar si ya envió su pista
+  if (currentPlayerId) {
+    const checkClue = async () => {
       const { data } = await supabase
         .from('clues')
         .select('*')
-        .eq('round_id', currentRound.id);
-      if (data) setClues(data);
+        .eq('round_id', effectiveRoundId)
+        .eq('player_id', currentPlayerId)
+        .single();
+      if (data) setHasSubmittedClue(true);
     };
-    fetchClues();
+    checkClue();
+  }
 
-    // Verificar si ya envió su pista
-    if (currentPlayerId) {
-      const checkClue = async () => {
-        const { data } = await supabase
-          .from('clues')
-          .select('*')
-          .eq('round_id', currentRound.id)
-          .eq('player_id', currentPlayerId)
-          .single();
-        if (data) setHasSubmittedClue(true);
-      };
-      checkClue();
-    }
-
-    return () => {
-      supabase.removeChannel(cluesChannel);
-    };
-  }, [currentRound.id, currentPlayerId]);
+  return () => {
+    supabase.removeChannel(cluesChannel);
+  };
+  }, [effectiveRoundId, currentPlayerId]);
 
   useEffect(() => {
-    // Suscribirse a votos
+    // Suscribirse a votos con el round_id efectivo
     const votesChannel = supabase
       .channel('votes-changes')
       .on(
@@ -148,122 +150,70 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           event: '*',
           schema: 'public',
           table: 'votes',
-          filter: `round_id=eq.${currentRound.id}`
+          filter: `round_id=eq.${effectiveRoundId}`
         },
         async () => {
           const { data } = await supabase
             .from('votes')
             .select('*')
-            .eq('round_id', currentRound.id);
+            .eq('round_id', effectiveRoundId);
           if (data) setVotes(data);
         }
       )
       .subscribe();
+  
+  // Obtener votos iniciales
+  const fetchVotes = async () => {
+    const { data } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('round_id', effectiveRoundId);
+    if (data) setVotes(data);
+  };
+  fetchVotes();
 
-    // Obtener votos iniciales
-    const fetchVotes = async () => {
+  // Verificar si ya votó
+  if (currentPlayerId) {
+    const checkVote = async () => {
       const { data } = await supabase
         .from('votes')
         .select('*')
-        .eq('round_id', currentRound.id);
-      if (data) setVotes(data);
+        .eq('round_id', effectiveRoundId)
+        .eq('voter_id', currentPlayerId)
+        .single();
+      if (data) setHasVoted(true);
     };
-    fetchVotes();
+    checkVote();
+  }
 
-    // Verificar si ya votó
-    if (currentPlayerId) {
-      const checkVote = async () => {
-        const { data } = await supabase
-          .from('votes')
-          .select('*')
-          .eq('round_id', currentRound.id)
-          .eq('voter_id', currentPlayerId)
-          .single();
-        if (data) setHasVoted(true);
-      };
-      checkVote();
-    }
-
-    return () => {
-      supabase.removeChannel(votesChannel);
-    };
-  }, [currentRound.id, currentPlayerId]);
+  return () => {
+    supabase.removeChannel(votesChannel);
+  };
+  }, [effectiveRoundId, currentPlayerId]);
 
   const handleSubmitClue = async () => {
-    if (!clue.trim() || !currentPlayerId) return;
+    if (!clue.trim() || !currentPlayerId || !effectiveRoundId) return;
     if (submittingClue || hasSubmittedClue) return;
   
     setSubmittingClue(true);
   
     try {
-      console.log("Submitting clue:", {
-        round_id: currentRound.id,
-        player_id: currentPlayerId,
-        clue_text: clue.trim()
-      });
-  
-      // Resolve effective round id (handles temporary id)
-      let effectiveRoundId = currentRound.id;
-      if (currentRound.id === 'temp-round') {
-        const { data: roundData, error: roundError } = await supabase
-          .from('rounds')
-          .select('id')
-          .eq('room_id', roomId)
-          .eq('round_number', currentRound.round_number)
-          .single();
-  
-        if (roundError) throw roundError;
-        if (!roundData) throw new Error('No se pudo encontrar la ronda actual');
-        effectiveRoundId = roundData.id;
-      }
-  
-      const { error: insertError } = await supabase
+      const { error } = await supabase
         .from('clues')
         .insert({
           round_id: effectiveRoundId,
           player_id: currentPlayerId,
-          clue_text: clue.trim()
+          clue_text: clue.trim(),
         });
   
-      if (insertError) throw insertError;
+      if (error) throw error;
   
       setHasSubmittedClue(true);
       setClue("");
-      toast({
-        title: "¡Pista enviada!",
-        description: "Turno del siguiente lotso",
-      });
-  
-      // Pasar al siguiente lotso
-      const currentIndex = alivePlayers.findIndex(p => p.id === currentPlayerId);
-      const nextIndex = (currentIndex + 1) % alivePlayers.length;
-      const nextPlayer = alivePlayers[nextIndex];
-  
-      // Si todos enviaron su pista, pasar a votación
-      if (clues.length + 1 >= alivePlayers.length) {
-        const { error: updateError } = await supabase
-          .from('rounds')
-          .update({
-            status: 'voting',
-            current_turn_player_id: null
-          })
-          .eq('id', effectiveRoundId);
-        if (updateError) throw updateError;
-      } else {
-        // Actualizar al siguiente lotso en turno
-        const { error: turnError } = await supabase
-          .from('rounds')
-          .update({ current_turn_player_id: nextPlayer.id })
-          .eq('id', effectiveRoundId);
-        if (turnError) throw turnError;
-      }
-    } catch (error) {
-      console.error('Error submitting clue:', error);
-      toast({
-        title: 'Error al enviar pista',
-        description: error instanceof Error ? error.message : 'No se pudo enviar la pista. Intenta de nuevo.',
-        variant: 'destructive',
-      });
+      toast({ title: "Pista enviada", description: "Tu pista fue registrada." });
+    } catch (err: any) {
+      console.error("Error enviando pista:", err);
+      toast({ title: "Error", description: err.message || "No se pudo enviar la pista" });
     } finally {
       setSubmittingClue(false);
     }
@@ -303,108 +253,66 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   };
 
   const calculateRoundResult = async () => {
-    const { data: allVotes } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('round_id', currentRound.id);
-
-    if (!allVotes) return;
-
-    // Contar votos
-    const voteCounts: { [key: string]: number } = {};
-    allVotes.forEach(vote => {
-      voteCounts[vote.voted_for_id] = (voteCounts[vote.voted_for_id] || 0) + 1;
-    });
-
-    // Encontrar el más votado
-    let maxVotes = 0;
-    let eliminatedPlayerId = '';
-    Object.entries(voteCounts).forEach(([playerId, count]) => {
-      if (count > maxVotes) {
-        maxVotes = count;
-        eliminatedPlayerId = playerId;
+    if (!effectiveRoundId) return;
+    try {
+      const votesCount: Record<string, number> = {};
+      votes.forEach(v => {
+        votesCount[v.voted_for_id] = (votesCount[v.voted_for_id] || 0) + 1;
+      });
+  
+      const sortedVotes = Object.entries(votesCount).sort((a, b) => b[1] - a[1]);
+      const mostVotedPlayerId = sortedVotes[0]?.[0];
+  
+      if (mostVotedPlayerId) {
+        await supabase
+          .from('players')
+          .update({ is_alive: false })
+          .eq('id', mostVotedPlayerId);
       }
-    });
-
-    // Eliminar al lotso
-    if (eliminatedPlayerId) {
+  
       await supabase
-        .from('players')
-        .update({ is_alive: false })
-        .eq('id', eliminatedPlayerId);
-    }
-
-    // Finalizar ronda
-    await supabase
-      .from('rounds')
-      .update({ 
-        status: 'finished',
-        finished_at: new Date().toISOString()
-      })
-      .eq('id', currentRound.id);
-
-    // Verificar condiciones de fin de juego
-    const { data: updatedPlayers } = await supabase
-      .from('players')
-      .select('*')
-      .eq('room_id', roomId)
-      .eq('is_alive', true);
-
-    if (!updatedPlayers) return;
-
-    const aliveImpostors = updatedPlayers.filter(p => p.role === 'impostor').length;
-    const aliveRegular = updatedPlayers.filter(p => p.role === 'player').length;
-
-    if (aliveImpostors === 0 || aliveRegular <= aliveImpostors) {
-      // Juego terminado
-      await supabase
+        .from('rounds')
+        .update({ status: 'finished' })
+        .eq('id', effectiveRoundId);
+  
+      const alivePlayersCount = alivePlayers.filter(p => p.id !== mostVotedPlayerId).length;
+      const impostorAlive = players.some(p => p.role === 'impostor' && p.is_alive && p.id !== mostVotedPlayerId);
+  
+      let nextStatus: 'waiting_clues' | 'voting' | 'finished' = 'finished';
+      if (impostorAlive && alivePlayersCount > 2) {
+        nextStatus = 'waiting_clues';
+      }
+  
+      const { data: roomData } = await supabase
         .from('rooms')
-        .update({ 
-          status: 'finished',
-          finished_at: new Date().toISOString()
-        })
-        .eq('id', roomId);
-    } else {
-      // Siguiente ronda
-      const { data: room } = await supabase
-        .from('rooms')
-        .select('current_round, max_rounds')
+        .select('*')
         .eq('id', roomId)
         .single();
-
-      if (room && room.current_round < room.max_rounds) {
-        const nextRound = room.current_round + 1;
-        await supabase
-          .from('rooms')
-          .update({ current_round: nextRound })
-          .eq('id', roomId);
-
-        // Crear siguiente ronda
-        const WORD_LIST = [
-          'Pizza', 'Playa', 'Guitarra', 'Montaña', 'Café', 'Libro', 'Fútbol', 'Perro',
-          'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta',
-        ];
-        const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-        const firstAlivePlayer = updatedPlayers[0];
-        
+  
+      if (!roomData) return;
+  
+      if (nextStatus === 'waiting_clues') {
+        const nextRoundNumber = (currentRound.round_number || 1) + 1;
         await supabase
           .from('rounds')
           .insert({
             room_id: roomId,
-            round_number: nextRound,
-            secret_word: secretWord,
+            round_number: nextRoundNumber,
+            secret_word: realSecretWord || currentRound.secret_word,
             status: 'waiting_clues',
-            current_turn_player_id: firstAlivePlayer?.id || null
+            current_turn_player_id: alivePlayers.find(p => p.is_alive)?.id || null,
           });
       } else {
         await supabase
           .from('rooms')
-          .update({ 
-            status: 'finished',
-            finished_at: new Date().toISOString()
-          })
+          .update({ status: 'finished' })
           .eq('id', roomId);
       }
+  
+      toast({ title: "Resultado de la ronda calculado" });
+    } catch (err: any) {
+      console.error("Error calculando resultado:", err);
+      toast({ title: "Error", description: err.message || "No se pudo calcular el resultado" });
     }
   };
 
@@ -437,6 +345,9 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
                 )}
               </p>
             </div>
+            {!isImpostor && !showWord && (
+              <p className="text-sm text-muted-foreground">Pulsa el ojo para revelar la palabra.</p>
+            )}
             {!isImpostor && showWord && (
               <div className="text-3xl font-black text-gradient">
                 {realSecretWord || currentRound.secret_word}
