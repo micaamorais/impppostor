@@ -205,7 +205,7 @@ const PlaySection = () => {
                     id: 'temp-round',
                     room_id: room.id,
                     round_number: room.current_round || 1,
-                    secret_word: 'palabra',
+                    secret_word: 'Palabra Secreta',
                     status: 'waiting_clues',
                     current_turn_player_id: players[0]?.id
                   }}
