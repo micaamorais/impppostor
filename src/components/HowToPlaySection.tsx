@@ -26,7 +26,7 @@ const HowToPlaySection = () => {
     },
     {
       icon: iconWin,
-      title: "¡Gana el equipo!",
+      title: "Ganadores",
       description: "Si eliminan al prepustor, gana la familita. Si no, gana él. ¡Cada palabra importa!",
       color: "from-primary to-accent"
     }
@@ -78,7 +78,7 @@ const HowToPlaySection = () => {
         <div className="mt-16 text-center">
           <div className="inline-block bg-card border-2 border-accent rounded-2xl px-8 py-4 glow-accent">
             <p className="text-2xl font-bold text-accent">
-              💡 Cada palabra puede traicionarte
+              💡 Cada palabra traiciona
             </p>
           </div>
         </div>
