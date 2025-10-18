@@ -183,15 +183,20 @@ export const useGameRoom = (roomCode?: string) => {
       // Crear primera ronda con el primer jugador vivo en turno
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
       const firstPlayer = allPlayers.find(p => p.is_alive);
-      await supabase
-        .from('rounds')
-        .insert({
-          room_id: roomId,
-          round_number: 1,
-          secret_word: secretWord,
-          status: 'waiting_clues',
-          current_turn_player_id: firstPlayer?.id || null
-        });
+      const { data: firstRound, error: roundError } = await supabase
+      .from('rounds')
+      .insert({
+      room_id: roomId,
+      round_number: 1,
+      secret_word: secretWord,
+      status: 'waiting_clues',
+      current_turn_player_id: firstPlayer?.id || null
+      })
+      .select()
+      .single();
+      
+      if (roundError) throw roundError;
+      if (firstRound) setCurrentRound(firstRound);
 
       return true;
     } catch (err) {
@@ -205,7 +210,6 @@ export const useGameRoom = (roomCode?: string) => {
   // Suscribirse a cambios en tiempo real
   useEffect(() => {
     if (!roomCode) return;
-
     const setupRealtimeSubscriptions = async () => {
       // Obtener sala por código
       const { data: roomData } = await supabase
