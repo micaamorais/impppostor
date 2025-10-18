@@ -226,7 +226,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       const { error } = await supabase
         .from('votes')
         .insert({
-          round_id: currentRound.id,
+          round_id: effectiveRoundId,
           voter_id: currentPlayerId,
           voted_for_id: votedPlayerId
         });
@@ -254,51 +254,71 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   const calculateRoundResult = async () => {
     if (!effectiveRoundId) return;
+
+    // Obtener votos actualizados desde la base de datos para evitar usar estado potencialmente desfasado
+    const { data: allVotes, error: votesError } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('round_id', effectiveRoundId);
+
+    if (votesError) {
+      toast({ title: "Error", description: votesError.message || "No se pudieron leer votos" });
+      return;
+    }
+    if (!allVotes) return;
+
     try {
       const votesCount: Record<string, number> = {};
-      votes.forEach(v => {
+      allVotes.forEach(v => {
         votesCount[v.voted_for_id] = (votesCount[v.voted_for_id] || 0) + 1;
       });
-  
+
       const sortedVotes = Object.entries(votesCount).sort((a, b) => b[1] - a[1]);
       const mostVotedPlayerId = sortedVotes[0]?.[0];
-  
+
       if (mostVotedPlayerId) {
         await supabase
           .from('players')
           .update({ is_alive: false })
           .eq('id', mostVotedPlayerId);
       }
-  
+
       await supabase
         .from('rounds')
         .update({ status: 'finished' })
         .eq('id', effectiveRoundId);
-  
+
       const alivePlayersCount = alivePlayers.filter(p => p.id !== mostVotedPlayerId).length;
       const impostorAlive = players.some(p => p.role === 'impostor' && p.is_alive && p.id !== mostVotedPlayerId);
-  
+
       let nextStatus: 'waiting_clues' | 'voting' | 'finished' = 'finished';
       if (impostorAlive && alivePlayersCount > 2) {
         nextStatus = 'waiting_clues';
       }
-  
+
       const { data: roomData } = await supabase
         .from('rooms')
         .select('*')
         .eq('id', roomId)
         .single();
-  
+
       if (!roomData) return;
-  
+
       if (nextStatus === 'waiting_clues') {
         const nextRoundNumber = (currentRound.round_number || 1) + 1;
+        // Generar nueva palabra (como el comportamiento previo)
+        const WORD_LIST = [
+          'Pizza', 'Playa', 'Guitarra', 'Montaña', 'Café', 'Libro', 'Fútbol', 'Perro',
+          'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta',
+        ];
+        const nextSecretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+
         await supabase
           .from('rounds')
           .insert({
             room_id: roomId,
             round_number: nextRoundNumber,
-            secret_word: realSecretWord || currentRound.secret_word,
+            secret_word: nextSecretWord,
             status: 'waiting_clues',
             current_turn_player_id: alivePlayers.find(p => p.is_alive)?.id || null,
           });
@@ -308,7 +328,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           .update({ status: 'finished' })
           .eq('id', roomId);
       }
-  
+
       toast({ title: "Resultado de la ronda calculado" });
     } catch (err: any) {
       console.error("Error calculando resultado:", err);
