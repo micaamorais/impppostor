@@ -182,10 +182,10 @@ const PlaySection = () => {
                       size="lg"
                       className="w-full"
                       onClick={handleStartGame}
-                      disabled={loading || players.length < 4}
+                      disabled={loading || players.length < 3}
                     >
-                      {players.length < 4
-                        ? `Esperando jugadores (min. 4)`
+                      {players.length < 3
+                        ? `Esperando jugadores (min. 3)`
                         : '🎮 Iniciar juego'}
                     </Button>
                   ) : (
