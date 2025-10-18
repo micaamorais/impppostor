@@ -198,21 +198,21 @@ const PlaySection = () => {
                 </>
               )}
 
-              {(room.status === 'playing' || room.current_round > 0) && (
-                <GamePhase
-                  roomId={room.id}
-                  currentRound={currentRound || {
-                    id: 'temp-round',
-                    room_id: room.id,
-                    round_number: room.current_round || 1,
-                    secret_word: 'Palabra Secreta',
-                    status: 'waiting_clues',
-                    current_turn_player_id: players[0]?.id
-                  }}
-                  players={players}
-                  currentPlayerId={playerId}
-                />
-              )}
+              {room.status === 'playing' || (room.current_round && room.current_round > 0) ? (
+                 <GamePhase
+                   roomId={room.id}
+                   currentRound={currentRound || {
+                     id: 'temp-round',
+                     room_id: room.id,
+                     round_number: room.current_round || 1,
+                     secret_word: '',
+                     status: 'waiting_clues',
+                     current_turn_player_id: players[0]?.id || null,
+                   }}
+                   players={players}
+                   currentPlayerId={playerId}
+                 />
+               ) : null}
 
               {room.status === 'finished' && (
                 <div className="text-center p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg">
