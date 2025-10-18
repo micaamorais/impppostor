@@ -94,11 +94,13 @@ const PlaySection = () => {
         description: "Buena suerte detectando al prepustor",
       });
     } catch (error) {
+      const message = (error as any)?.message || (error instanceof Error ? error.message : "No se pudo iniciar el juego");
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo iniciar el juego",
+        description: message,
         variant: "destructive",
       });
+      console.error('startGame error:', error);
     }
   };
 
