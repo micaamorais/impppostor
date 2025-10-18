@@ -16,13 +16,13 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left space-y-6 animate-fade-in">
             <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-gradient leading-tight animate-title">
-              IMPOSTOR
+              PREPUSTOR
             </h1>
             <p className="text-2xl md:text-3xl text-muted-foreground font-medium">
               Un juego de palabras, engaños y risas
             </p>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Todos reciben una palabra secreta... excepto el impostor. ¿Podrás descubrir quién miente mejor? 
+              Todos reciben una palabra secreta... excepto el prepustor. ¿Quién miente mejor? 
               Cada palabra puede traicionarte.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
