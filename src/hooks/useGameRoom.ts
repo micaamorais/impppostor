@@ -164,14 +164,15 @@ export const useGameRoom = (roomCode?: string) => {
       
       for (let i = 0; i < shuffled.length; i++) {
         const role = i < impostorCount ? 'impostor' : 'player';
-        await supabase
+        const { error: upErr } = await supabase
           .from('players')
           .update({ role })
           .eq('id', shuffled[i].id);
+        if (upErr) throw new Error(upErr.message);
       }
 
       // Actualizar estado de la sala
-      await supabase
+      const { error: roomUpdateErr } = await supabase
         .from('rooms')
         .update({ 
           status: 'playing', 
@@ -179,23 +180,24 @@ export const useGameRoom = (roomCode?: string) => {
           current_round: 1
         })
         .eq('id', roomId);
+      if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
       // Crear primera ronda con el primer jugador vivo en turno
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
       const firstPlayer = allPlayers.find(p => p.is_alive);
       const { data: firstRound, error: roundError } = await supabase
-      .from('rounds')
-      .insert({
-      room_id: roomId,
-      round_number: 1,
-      secret_word: secretWord,
-      status: 'waiting_clues',
-      current_turn_player_id: firstPlayer?.id || null
-      })
-      .select()
-      .single();
-      
-      if (roundError) throw roundError;
+        .from('rounds')
+        .insert({
+          room_id: roomId,
+          round_number: 1,
+          secret_word: secretWord,
+          status: 'waiting_clues',
+          current_turn_player_id: firstPlayer?.id || null
+        })
+        .select()
+        .single();
+
+      if (roundError) throw new Error(roundError.message);
       if (firstRound) setCurrentRound(firstRound);
 
       return true;
