@@ -20,7 +20,7 @@ type Round = {
   round_number: number;
   secret_word: string;
   status: 'waiting_clues' | 'voting' | 'finished';
-  current_turn_player_id: string | null;
+  current_turn_player_id?: string | null;
 };
 
 type Clue = {
@@ -352,8 +352,9 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   // Fase de dar pistas
   if (currentRound.status === 'waiting_clues') {
-    const currentTurnPlayer = alivePlayers.find(p => p.id === currentRound.current_turn_player_id);
-    const isMyTurn = currentPlayerId === currentRound.current_turn_player_id;
+    const effectiveTurnPlayerId = currentRound.current_turn_player_id ?? alivePlayers[0]?.id ?? null;
+    const currentTurnPlayer = alivePlayers.find(p => p.id === effectiveTurnPlayerId);
+    const isMyTurn = currentPlayerId === effectiveTurnPlayerId;
 
     return (
       <div className="space-y-6">
