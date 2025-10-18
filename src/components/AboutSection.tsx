@@ -54,14 +54,14 @@ const AboutSection = () => {
               </div>
               <h3 className="text-xl font-bold">Partidas rápidas</h3>
               <p className="text-sm text-muted-foreground">
-                Diversión en cada ronda
+                Para divertirse
               </p>
             </div>
           </div>
 
           <div className="pt-8 border-t border-border">
             <p className="text-center text-muted-foreground">
-              ¿Sugerencias? Escribí a moraamz (discord) o a{" "}
+              ¿Sugerencias? @moraamz (discord) {" "}
               <a href="mailto:m.morais7372@gmail.com" className="text-primary hover:text-primary-glow transition-colors font-semibold">
                 m.morais7372@gmail.com
               </a>
