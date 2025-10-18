@@ -41,10 +41,7 @@ const generateRoomCode = () => {
 };
 
 // Lista de palabras para el juego
-const WORD_LIST = [
-  'Pizza', 'Playa', 'Guitarra', 'Montaña', 'Café', 'Libro', 'Fútbol', 'Perro',
-  'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta'
-];
+const WORD_LIST = ['Pizza', 'Playa', 'Guitarra', 'Montaña', 'Café', 'Libro', 'Fútbol', 'Perro', 'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta', 'Casa', 'Amigo', 'Escuela', 'Música', 'Auto', 'Flor', 'Sol', 'Computadora', 'Mar', 'Río', 'Ciudad', 'Comida', 'Familia', 'Trabajo', 'Bosque', 'Campo', 'Ropa', 'Teléfono', 'Reloj', 'Camino', 'Zapato', 'Silla', 'Ventana', 'Puerta', 'Montaña', 'Corazón', 'Niño', 'Película', 'Avión', 'Helado', 'Cama', 'Pan', 'Taza', 'Foto', 'Jardín', 'Montaña', 'Nieve', 'Sueño', 'Juego', 'Tiempo', 'Agua', 'Fuego', 'Estrella', 'Cielo', 'Amor', 'Beso', 'Risa', 'Mundo', 'Plaza', 'Tierra', 'Escenario'];
 
 export const useGameRoom = (roomCode?: string) => {
   const [room, setRoom] = useState<Room | null>(null);
@@ -149,8 +146,8 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('room_id', roomId);
 
       if (playersError) throw playersError;
-      if (!allPlayers || allPlayers.length < 4) {
-        throw new Error('Se necesitan al menos 4 jugadores');
+      if (!allPlayers || allPlayers.length < 3) {
+        throw new Error('Se necesitan al menos 3 lotsos');
       }
 
       const { data: roomData } = await supabase
