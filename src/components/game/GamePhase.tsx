@@ -55,7 +55,36 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   const isImpostor = currentPlayer?.role === 'impostor';
   const alivePlayers = players.filter(p => p.is_alive);
 
+  // Estado para almacenar la palabra secreta real
+  const [realSecretWord, setRealSecretWord] = useState<string | null>(null);
+
+  // Obtener la palabra secreta real si estamos usando un ID temporal
   useEffect(() => {
+    console.log("Current round data:", currentRound);
+    
+    const fetchRealRound = async () => {
+      if (currentRound.id === 'temp-round') {
+        try {
+          const { data, error } = await supabase
+            .from('rounds')
+            .select('secret_word')
+            .eq('room_id', roomId)
+            .eq('round_number', currentRound.round_number)
+            .single();
+            
+          if (error) throw error;
+          if (data) {
+            console.log("Palabra secreta real obtenida:", data.secret_word);
+            setRealSecretWord(data.secret_word);
+          }
+        } catch (err) {
+          console.error("Error al obtener la palabra secreta:", err);
+        }
+      }
+    };
+    
+    fetchRealRound();
+    
     // Suscribirse a clues
     const cluesChannel = supabase
       .channel('clues-changes')
@@ -410,7 +439,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
             </div>
             {!isImpostor && showWord && (
               <div className="text-3xl font-black text-gradient">
-                {currentRound.secret_word}
+                {realSecretWord || currentRound.secret_word}
               </div>
             )}
             {isImpostor && (
