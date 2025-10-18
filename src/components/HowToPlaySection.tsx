@@ -8,26 +8,26 @@ const HowToPlaySection = () => {
   const steps = [
     {
       icon: iconWord,
-      title: "Recibe tu palabra",
+      title: "Recibí tu palabra",
       description: "Todos los lostos reciben una palabra secreta... menos el prepustor, que no la conoce.",
       color: "from-primary to-primary-glow"
     },
     {
       icon: iconClues,
-      title: "Da pistas generales",
+      title: "Dá pistas generales",
       description: "Cada losto dice algo relacionado con la palabra. El prepustor improvisa para disimular.",
       color: "from-secondary to-secondary-glow"
     },
     {
       icon: iconVote,
       title: "Vota al sospechoso",
-      description: "Todos votan quién creen que es el prepustor basándose en las pistas que dio.",
+      description: "Todos votan quién creen que es el prepustor basándose en las pistas que se dieron.",
       color: "from-accent to-secondary"
     },
     {
       icon: iconWin,
       title: "¡Gana el equipo!",
-      description: "Si eliminan al prepustor, gana el grupo. Si no, gana él. ¡Cada palabra puede traicionarte!",
+      description: "Si eliminan al prepustor, gana la familita. Si no, gana él. ¡Cada palabra importa!",
       color: "from-primary to-accent"
     }
   ];
