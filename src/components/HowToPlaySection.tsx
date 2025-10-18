@@ -9,25 +9,25 @@ const HowToPlaySection = () => {
     {
       icon: iconWord,
       title: "Recibe tu palabra",
-      description: "Todos los jugadores reciben una palabra secreta... menos el impostor, que no la conoce.",
+      description: "Todos los lostos reciben una palabra secreta... menos el prepustor, que no la conoce.",
       color: "from-primary to-primary-glow"
     },
     {
       icon: iconClues,
       title: "Da pistas generales",
-      description: "Cada jugador dice algo relacionado con la palabra. El impostor improvisa para disimular.",
+      description: "Cada losto dice algo relacionado con la palabra. El prepustor improvisa para disimular.",
       color: "from-secondary to-secondary-glow"
     },
     {
       icon: iconVote,
       title: "Vota al sospechoso",
-      description: "Todos votan quién creen que es el impostor basándose en las pistas que dio.",
+      description: "Todos votan quién creen que es el prepustor basándose en las pistas que dio.",
       color: "from-accent to-secondary"
     },
     {
       icon: iconWin,
       title: "¡Gana el equipo!",
-      description: "Si eliminan al impostor, gana el grupo. Si no, gana él. ¡Cada palabra puede traicionarte!",
+      description: "Si eliminan al prepustor, gana el grupo. Si no, gana él. ¡Cada palabra puede traicionarte!",
       color: "from-primary to-accent"
     }
   ];
