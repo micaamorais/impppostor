@@ -221,6 +221,17 @@ export const useGameRoom = (roomCode?: string) => {
 
       setRoom(roomData);
 
+      // Función para refrescar datos de la sala
+      const refreshRoomData = async () => {
+        const { data } = await supabase
+          .from('rooms')
+          .select('*')
+          .eq('id', roomData.id)
+          .single();
+        
+        if (data) setRoom(data);
+      };
+
       // Suscripción a cambios en la sala
       const roomChannel = supabase
         .channel('room-changes')
@@ -232,23 +243,22 @@ export const useGameRoom = (roomCode?: string) => {
             table: 'rooms',
             filter: `id=eq.${roomData.id}`
           },
-          (payload) => {
-            setRoom(payload.new as Room);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'rooms',
-            filter: `id=eq.${roomData.id}`
-          },
-          (payload) => {
-            setRoom(payload.new as Room);
+          async () => {
+            await refreshRoomData();
           }
         )
         .subscribe();
+
+      // Función para refrescar datos de jugadores
+      const refreshPlayersData = async () => {
+        const { data } = await supabase
+          .from('players')
+          .select('*')
+          .eq('room_id', roomData.id)
+          .order('joined_at');
+        
+        if (data) setPlayers(data);
+      };
 
       // Suscripción a cambios en jugadores
       const playersChannel = supabase
@@ -256,55 +266,13 @@ export const useGameRoom = (roomCode?: string) => {
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'players',
             filter: `room_id=eq.${roomData.id}`
           },
           async () => {
-            const { data } = await supabase
-              .from('players')
-              .select('*')
-              .eq('room_id', roomData.id)
-              .order('joined_at');
-            
-            if (data) setPlayers(data);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'players',
-            filter: `room_id=eq.${roomData.id}`
-          },
-          async () => {
-            const { data } = await supabase
-              .from('players')
-              .select('*')
-              .eq('room_id', roomData.id)
-              .order('joined_at');
-            
-            if (data) setPlayers(data);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'DELETE',
-            schema: 'public',
-            table: 'players',
-            filter: `room_id=eq.${roomData.id}`
-          },
-          async () => {
-            const { data } = await supabase
-              .from('players')
-              .select('*')
-              .eq('room_id', roomData.id)
-              .order('joined_at');
-            
-            if (data) setPlayers(data);
+            await refreshPlayersData();
           }
         )
         .subscribe();
@@ -318,47 +286,34 @@ export const useGameRoom = (roomCode?: string) => {
       
       if (initialPlayers) setPlayers(initialPlayers);
 
+      // Función para refrescar datos de rondas
+      const refreshRoundData = async () => {
+        const { data } = await supabase
+          .from('rounds')
+          .select('*')
+          .eq('room_id', roomData.id)
+          .order('round_number', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (data) setCurrentRound(data);
+      };
+
       // Suscripción a rondas
       const roundsChannel = supabase
         .channel('rounds-changes')
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'rounds',
             filter: `room_id=eq.${roomData.id}`
           },
           async () => {
-            const { data } = await supabase
-              .from('rounds')
-              .select('*')
-              .eq('room_id', roomData.id)
-              .order('round_number', { ascending: false })
-              .limit(1)
-              .single();
-            
-            if (data) setCurrentRound(data);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'rounds',
-            filter: `room_id=eq.${roomData.id}`
-          },
-          async () => {
-            const { data } = await supabase
-              .from('rounds')
-              .select('*')
-              .eq('room_id', roomData.id)
-              .order('round_number', { ascending: false })
-              .limit(1)
-              .single();
-            
-            if (data) setCurrentRound(data);
+            await refreshRoundData();
+            // También refrescamos los datos de la sala para asegurar sincronización
+            await refreshRoomData();
           }
         )
         .subscribe();
