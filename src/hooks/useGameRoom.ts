@@ -227,7 +227,19 @@ export const useGameRoom = (roomCode?: string) => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'rooms',
+            filter: `id=eq.${roomData.id}`
+          },
+          (payload) => {
+            setRoom(payload.new as Room);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
             schema: 'public',
             table: 'rooms',
             filter: `id=eq.${roomData.id}`
