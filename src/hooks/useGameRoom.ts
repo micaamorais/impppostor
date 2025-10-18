@@ -312,7 +312,27 @@ export const useGameRoom = (roomCode?: string) => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'INSERT',
+            schema: 'public',
+            table: 'rounds',
+            filter: `room_id=eq.${roomData.id}`
+          },
+          async () => {
+            const { data } = await supabase
+              .from('rounds')
+              .select('*')
+              .eq('room_id', roomData.id)
+              .order('round_number', { ascending: false })
+              .limit(1)
+              .single();
+            
+            if (data) setCurrentRound(data);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
             schema: 'public',
             table: 'rounds',
             filter: `room_id=eq.${roomData.id}`
