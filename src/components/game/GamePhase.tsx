@@ -360,7 +360,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
             <div className="flex items-center justify-center gap-4">
               <p className="text-lg">
                 {isImpostor ? (
-                  <span className="text-destructive font-bold">¡Eres el IMPOSTOR! 🎭</span>
+                  <span className="text-destructive font-bold">¡Eres el PREPUSTOR! 🎭</span>
                 ) : (
                   <>
                     <span className="font-bold">Palabra secreta:</span>
@@ -465,7 +465,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         <Card className="p-6 bg-gradient-to-br from-destructive/20 to-primary/20">
           <div className="text-center space-y-4">
             <h3 className="text-2xl font-bold">¡Hora de votar!</h3>
-            <p className="text-lg">¿Quién crees que es el impostor?</p>
+            <p className="text-lg">¿Quién crees que es el prepustor?</p>
           </div>
         </Card>
 
