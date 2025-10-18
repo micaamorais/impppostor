@@ -22,8 +22,20 @@ const PlaySection = () => {
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!playerName.trim()) {
+      toast({
+        title: "Error",
+        description: "Ingresa tu nombre primero",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const code = await createRoom(maxPlayers, impostorCount, maxRounds);
+      // Unirse automáticamente como host
+      await joinRoom(code, playerName);
       setCreatedRoomCode(code);
       setShowCreateRoom(false);
       toast({
@@ -209,6 +221,18 @@ const PlaySection = () => {
               
               {showCreateRoom ? (
                 <form onSubmit={handleCreateRoom} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="createPlayerName">Tu nombre</Label>
+                    <Input 
+                      id="createPlayerName" 
+                      type="text" 
+                      placeholder="Tu nombre"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      className="bg-background border-2"
+                      required
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="players">Número de jugadores (4-10)</Label>
                     <Input 
