@@ -244,7 +244,43 @@ export const useGameRoom = (roomCode?: string) => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'INSERT',
+            schema: 'public',
+            table: 'players',
+            filter: `room_id=eq.${roomData.id}`
+          },
+          async () => {
+            const { data } = await supabase
+              .from('players')
+              .select('*')
+              .eq('room_id', roomData.id)
+              .order('joined_at');
+            
+            if (data) setPlayers(data);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'players',
+            filter: `room_id=eq.${roomData.id}`
+          },
+          async () => {
+            const { data } = await supabase
+              .from('players')
+              .select('*')
+              .eq('room_id', roomData.id)
+              .order('joined_at');
+            
+            if (data) setPlayers(data);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
             schema: 'public',
             table: 'players',
             filter: `room_id=eq.${roomData.id}`
