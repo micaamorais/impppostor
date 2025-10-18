@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useGameRoom } from "@/hooks/useGameRoom";
+import { useCurrentPlayer } from "@/hooks/useCurrentPlayer";
+import GamePhase from "@/components/game/GamePhase";
 
 const PlaySection = () => {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -18,7 +20,8 @@ const PlaySection = () => {
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { room, players, loading, createRoom, joinRoom, startGame } = useGameRoom(createdRoomCode || undefined);
+  const { room, players, currentRound, loading, createRoom, joinRoom, startGame } = useGameRoom(createdRoomCode || undefined);
+  const { playerId, savePlayerId } = useCurrentPlayer(createdRoomCode);
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +38,8 @@ const PlaySection = () => {
     try {
       const code = await createRoom(maxPlayers, impostorCount, maxRounds);
       // Unirse automáticamente como host
-      await joinRoom(code, playerName);
+      const result = await joinRoom(code, playerName);
+      savePlayerId(result.player.id, code);
       setCreatedRoomCode(code);
       setShowCreateRoom(false);
       toast({
@@ -63,7 +67,9 @@ const PlaySection = () => {
     }
 
     try {
-      await joinRoom(joinCode, playerName);
+      const result = await joinRoom(joinCode, playerName);
+      savePlayerId(result.player.id, joinCode);
+      setCreatedRoomCode(joinCode); // Establecer el código para activar el hook
       toast({
         title: "¡Conectado! 🎮",
         description: `Te uniste a la sala ${joinCode}`,
@@ -180,11 +186,20 @@ const PlaySection = () => {
                 </Button>
               )}
 
-              {room.status === 'playing' && (
+              {room.status === 'playing' && currentRound && (
+                <GamePhase
+                  roomId={room.id}
+                  currentRound={currentRound}
+                  players={players}
+                  currentPlayerId={playerId}
+                />
+              )}
+
+              {room.status === 'finished' && (
                 <div className="text-center p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg">
-                  <p className="text-2xl font-bold">¡Juego en curso!</p>
+                  <p className="text-2xl font-bold">¡Juego terminado!</p>
                   <p className="text-muted-foreground mt-2">
-                    Ronda {room.current_round} de {room.max_rounds}
+                    Gracias por jugar
                   </p>
                 </div>
               )}
