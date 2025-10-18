@@ -116,6 +116,8 @@ const PlaySection = () => {
 
   // Si hay una sala activa, mostrar el lobby
   if (room) {
+    console.log("Room status:", room.status, "Current round:", currentRound);
+    
     return (
       <section id="jugar" className="py-20 px-4 bg-gradient-to-b from-background to-muted">
         <div className="container mx-auto max-w-4xl">
@@ -123,7 +125,7 @@ const PlaySection = () => {
             <div className="space-y-6">
               <div className="text-center space-y-4">
                 <h2 className="text-4xl md:text-5xl font-black text-gradient">
-                  Sala {room.code}
+                  Sala {room.code} - {room.status}
                 </h2>
                 <div className="flex items-center justify-center gap-4">
                   <Button
@@ -196,10 +198,17 @@ const PlaySection = () => {
                 </>
               )}
 
-              {room.status === 'playing' && currentRound && (
+              {(room.status === 'playing' || room.current_round > 0) && (
                 <GamePhase
                   roomId={room.id}
-                  currentRound={currentRound}
+                  currentRound={currentRound || {
+                    id: 'temp-round',
+                    room_id: room.id,
+                    round_number: room.current_round || 1,
+                    secret_word: 'palabra',
+                    status: 'waiting_clues',
+                    current_turn_player_id: players[0]?.id
+                  }}
                   players={players}
                   currentPlayerId={playerId}
                 />
