@@ -191,8 +191,7 @@ export const useGameRoom = (roomCode?: string) => {
           room_id: roomId,
           round_number: 1,
           secret_word: secretWord,
-          status: 'waiting_clues',
-          current_turn_player_id: firstPlayer?.id || null
+          status: 'waiting_clues'
         })
         .select()
         .single();
