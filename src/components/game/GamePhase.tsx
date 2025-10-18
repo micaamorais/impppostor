@@ -161,15 +161,46 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     if (!clue.trim() || !currentPlayerId) return;
 
     try {
-      const { error } = await supabase
-        .from('clues')
-        .insert({
-          round_id: currentRound.id,
-          player_id: currentPlayerId,
-          clue_text: clue.trim()
-        });
-
-      if (error) throw error;
+      console.log("Submitting clue:", {
+        round_id: currentRound.id,
+        player_id: currentPlayerId,
+        clue_text: clue.trim()
+      });
+      
+      // Check if currentRound.id is valid
+      if (currentRound.id === 'temp-round') {
+        // Fetch the actual round ID first
+        const { data: roundData, error: roundError } = await supabase
+          .from('rounds')
+          .select('id')
+          .eq('room_id', roomId)
+          .eq('round_number', currentRound.round_number)
+          .single();
+          
+        if (roundError) throw roundError;
+        if (!roundData) throw new Error("No se pudo encontrar la ronda actual");
+        
+        const { error } = await supabase
+          .from('clues')
+          .insert({
+            round_id: roundData.id,
+            player_id: currentPlayerId,
+            clue_text: clue.trim()
+          });
+          
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('clues')
+          .insert({
+            round_id: currentRound.id,
+            player_id: currentPlayerId,
+            clue_text: clue.trim()
+          });
+          
+        if (error) throw error;
+      }
+      
 
       setHasSubmittedClue(true);
       setClue("");
@@ -200,9 +231,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           .eq('id', currentRound.id);
       }
     } catch (error) {
+      console.error("Error submitting clue:", error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo enviar la pista",
+        title: "Error al enviar pista",
+        description: error instanceof Error ? error.message : "No se pudo enviar la pista. Intenta de nuevo.",
         variant: "destructive",
       });
     }
