@@ -44,6 +44,7 @@ create table public.rounds (
   round_number int not null,
   secret_word text not null,
   status text not null check (status in ('waiting_clues', 'voting', 'finished')),
+  current_turn_player_id uuid references public.players(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   finished_at timestamp with time zone
 );

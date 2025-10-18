@@ -172,18 +172,28 @@ const PlaySection = () => {
                 </div>
               </div>
 
-              {room.status === 'waiting' && players.some(p => p.is_host) && (
-                <Button
-                  variant="game"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleStartGame}
-                  disabled={loading || players.length < 4}
-                >
-                  {players.length < 4
-                    ? `Esperando jugadores (min. 4)`
-                    : '🎮 Iniciar juego'}
-                </Button>
+              {room.status === 'waiting' && (
+                <>
+                  {players.find(p => p.id === playerId)?.is_host ? (
+                    <Button
+                      variant="game"
+                      size="lg"
+                      className="w-full"
+                      onClick={handleStartGame}
+                      disabled={loading || players.length < 4}
+                    >
+                      {players.length < 4
+                        ? `Esperando jugadores (min. 4)`
+                        : '🎮 Iniciar juego'}
+                    </Button>
+                  ) : (
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <p className="text-lg text-muted-foreground">
+                        Esperando a que el anfitrión inicie la partida...
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               {room.status === 'playing' && currentRound && (

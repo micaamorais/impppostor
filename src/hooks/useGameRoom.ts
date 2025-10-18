@@ -30,6 +30,7 @@ type Round = {
   round_number: number;
   secret_word: string;
   status: 'waiting_clues' | 'voting' | 'finished';
+  current_turn_player_id: string | null;
   created_at: string;
   finished_at: string | null;
 };
@@ -182,15 +183,17 @@ export const useGameRoom = (roomCode?: string) => {
         })
         .eq('id', roomId);
 
-      // Crear primera ronda
+      // Crear primera ronda con el primer jugador vivo en turno
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+      const firstPlayer = allPlayers.find(p => p.is_alive);
       await supabase
         .from('rounds')
         .insert({
           room_id: roomId,
           round_number: 1,
           secret_word: secretWord,
-          status: 'waiting_clues'
+          status: 'waiting_clues',
+          current_turn_player_id: firstPlayer?.id || null
         });
 
       return true;

@@ -20,6 +20,7 @@ type Round = {
   round_number: number;
   secret_word: string;
   status: 'waiting_clues' | 'voting' | 'finished';
+  current_turn_player_id: string | null;
 };
 
 type Clue = {
@@ -174,14 +175,28 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setClue("");
       toast({
         title: "¡Pista enviada!",
-        description: "Esperando a los demás jugadores",
+        description: "Turno del siguiente jugador",
       });
+
+      // Pasar al siguiente jugador
+      const currentIndex = alivePlayers.findIndex(p => p.id === currentPlayerId);
+      const nextIndex = (currentIndex + 1) % alivePlayers.length;
+      const nextPlayer = alivePlayers[nextIndex];
 
       // Si todos enviaron su pista, pasar a votación
       if (clues.length + 1 >= alivePlayers.length) {
         await supabase
           .from('rounds')
-          .update({ status: 'voting' })
+          .update({ 
+            status: 'voting',
+            current_turn_player_id: null
+          })
+          .eq('id', currentRound.id);
+      } else {
+        // Actualizar al siguiente jugador en turno
+        await supabase
+          .from('rounds')
+          .update({ current_turn_player_id: nextPlayer.id })
           .eq('id', currentRound.id);
       }
     } catch (error) {
@@ -309,6 +324,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta'
         ];
         const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+        const firstAlivePlayer = updatedPlayers[0];
         
         await supabase
           .from('rounds')
@@ -316,7 +332,8 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
             room_id: roomId,
             round_number: nextRound,
             secret_word: secretWord,
-            status: 'waiting_clues'
+            status: 'waiting_clues',
+            current_turn_player_id: firstAlivePlayer?.id || null
           });
       } else {
         await supabase
@@ -332,6 +349,9 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   // Fase de dar pistas
   if (currentRound.status === 'waiting_clues') {
+    const currentTurnPlayer = alivePlayers.find(p => p.id === currentRound.current_turn_player_id);
+    const isMyTurn = currentPlayerId === currentRound.current_turn_player_id;
+
     return (
       <div className="space-y-6">
         <Card className="p-6 bg-gradient-to-br from-primary/20 to-secondary/20">
@@ -369,7 +389,20 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           </div>
         </Card>
 
-        {!hasSubmittedClue && currentPlayer?.is_alive ? (
+        <Card className="p-6 bg-gradient-to-br from-accent/20 to-primary/10">
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">Turno de:</p>
+            <p className="text-2xl font-bold">
+              {currentTurnPlayer?.name || "Cargando..."}
+              {isMyTurn && " 👈 ¡Tu turno!"}
+            </p>
+            <p className="text-muted-foreground">
+              {clues.length} / {alivePlayers.length} pistas enviadas
+            </p>
+          </div>
+        </Card>
+
+        {!hasSubmittedClue && currentPlayer?.is_alive && isMyTurn ? (
           <Card className="p-6">
             <div className="space-y-4">
               <Label htmlFor="clue">Tu pista</Label>
@@ -394,10 +427,11 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         ) : (
           <Card className="p-6 text-center">
             <p className="text-lg">
-              {currentPlayer?.is_alive ? "Pista enviada. Esperando a los demás..." : "Estás eliminado"}
-            </p>
-            <p className="text-muted-foreground mt-2">
-              {clues.length} / {alivePlayers.length} pistas recibidas
+              {!currentPlayer?.is_alive 
+                ? "Estás eliminado"
+                : hasSubmittedClue 
+                  ? "Pista enviada. Esperando a los demás..."
+                  : "Esperando tu turno..."}
             </p>
           </Card>
         )}
@@ -406,14 +440,17 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           <Card className="p-6">
             <h4 className="text-xl font-bold mb-4">Pistas enviadas:</h4>
             <div className="space-y-2">
-              {clues.map((c, index) => (
-                <div
-                  key={c.id}
-                  className="p-3 bg-background rounded-lg border-2 border-border"
-                >
-                  <span className="font-medium">Jugador {index + 1}:</span> {c.clue_text}
-                </div>
-              ))}
+              {clues.map((c) => {
+                const player = players.find(p => p.id === c.player_id);
+                return (
+                  <div
+                    key={c.id}
+                    className="p-3 bg-background rounded-lg border-2 border-border"
+                  >
+                    <span className="font-medium">{player?.name}:</span> {c.clue_text}
+                  </div>
+                );
+              })}
             </div>
           </Card>
         )}
