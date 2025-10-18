@@ -20,7 +20,7 @@ const HowToPlaySection = () => {
     },
     {
       icon: iconVote,
-      title: "Vota al sospechoso",
+      title: "Votá al sospechoso",
       description: "Todos votan quién creen que es el prepustor basándose en las pistas que se dieron.",
       color: "from-accent to-secondary"
     },
