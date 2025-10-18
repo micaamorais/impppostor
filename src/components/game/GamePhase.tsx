@@ -175,10 +175,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setClue("");
       toast({
         title: "¡Pista enviada!",
-        description: "Turno del siguiente jugador",
+        description: "Turno del siguiente lotso",
       });
 
-      // Pasar al siguiente jugador
+      // Pasar al siguiente lotso
       const currentIndex = alivePlayers.findIndex(p => p.id === currentPlayerId);
       const nextIndex = (currentIndex + 1) % alivePlayers.length;
       const nextPlayer = alivePlayers[nextIndex];
@@ -193,7 +193,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           })
           .eq('id', currentRound.id);
       } else {
-        // Actualizar al siguiente jugador en turno
+        // Actualizar al siguiente lotso en turno
         await supabase
           .from('rounds')
           .update({ current_turn_player_id: nextPlayer.id })
@@ -225,7 +225,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setHasVoted(true);
       toast({
         title: "¡Voto registrado!",
-        description: "Esperando a los demás jugadores",
+        description: "Esperando a los demás lotsos",
       });
 
       // Si todos votaron, calcular resultado
@@ -265,7 +265,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       }
     });
 
-    // Eliminar al jugador
+    // Eliminar al lotso
     if (eliminatedPlayerId) {
       await supabase
         .from('players')
@@ -321,7 +321,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         // Crear siguiente ronda
         const WORD_LIST = [
           'Pizza', 'Playa', 'Guitarra', 'Montaña', 'Café', 'Libro', 'Fútbol', 'Perro',
-          'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta'
+          'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta',
         ];
         const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
         const firstAlivePlayer = updatedPlayers[0];
