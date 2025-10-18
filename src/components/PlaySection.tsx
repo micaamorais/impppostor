@@ -91,7 +91,7 @@ const PlaySection = () => {
       await startGame(room.id);
       toast({
         title: "¡Juego iniciado! 🎯",
-        description: "Buena suerte detectando al impostor",
+        description: "Buena suerte detectando al prepustor",
       });
     } catch (error) {
       toast({
@@ -259,24 +259,24 @@ const PlaySection = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="players">Número de jugadores (4-10)</Label>
+                    <Label htmlFor="players">Número de lotsos (3-20)</Label>
                     <Input 
                       id="players" 
                       type="number" 
-                      min="4" 
-                      max="10" 
+                      min="3" 
+                      max="20" 
                       value={maxPlayers}
                       onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
                       className="bg-background border-2"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="impostors">Número de impostores</Label>
+                    <Label htmlFor="impostors">Número de prepustores</Label>
                     <Input 
                       id="impostors" 
                       type="number" 
                       min="1" 
-                      max="3" 
+                      max="5" 
                       value={impostorCount}
                       onChange={(e) => setImpostorCount(parseInt(e.target.value))}
                       className="bg-background border-2"
