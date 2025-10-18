@@ -29,10 +29,11 @@ type Clue = {
   clue_text: string;
 };
 
+// Update Vote type to match DB schema
 type Vote = {
   id: string;
   voter_id: string;
-  voted_player_id: string;
+  voted_for_id: string;
 };
 
 type GamePhaseProps = {
@@ -50,7 +51,9 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   const [hasVoted, setHasVoted] = useState(false);
   const [showWord, setShowWord] = useState(false);
   const { toast } = useToast();
-
+  
+  // Add submitting state to prevent duplicate inserts
+  const [submittingClue, setSubmittingClue] = useState(false);
   const currentPlayer = players.find(p => p.id === currentPlayerId);
   const isImpostor = currentPlayer?.role === 'impostor';
   const alivePlayers = players.filter(p => p.is_alive);
@@ -188,84 +191,81 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   const handleSubmitClue = async () => {
     if (!clue.trim() || !currentPlayerId) return;
-
+    if (submittingClue || hasSubmittedClue) return;
+  
+    setSubmittingClue(true);
+  
     try {
       console.log("Submitting clue:", {
         round_id: currentRound.id,
         player_id: currentPlayerId,
         clue_text: clue.trim()
       });
-      
-      // Check if currentRound.id is valid
+  
+      // Resolve effective round id (handles temporary id)
+      let effectiveRoundId = currentRound.id;
       if (currentRound.id === 'temp-round') {
-        // Fetch the actual round ID first
         const { data: roundData, error: roundError } = await supabase
           .from('rounds')
           .select('id')
           .eq('room_id', roomId)
           .eq('round_number', currentRound.round_number)
           .single();
-          
+  
         if (roundError) throw roundError;
-        if (!roundData) throw new Error("No se pudo encontrar la ronda actual");
-        
-        const { error } = await supabase
-          .from('clues')
-          .insert({
-            round_id: roundData.id,
-            player_id: currentPlayerId,
-            clue_text: clue.trim()
-          });
-          
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('clues')
-          .insert({
-            round_id: currentRound.id,
-            player_id: currentPlayerId,
-            clue_text: clue.trim()
-          });
-          
-        if (error) throw error;
+        if (!roundData) throw new Error('No se pudo encontrar la ronda actual');
+        effectiveRoundId = roundData.id;
       }
-      
-
+  
+      const { error: insertError } = await supabase
+        .from('clues')
+        .insert({
+          round_id: effectiveRoundId,
+          player_id: currentPlayerId,
+          clue_text: clue.trim()
+        });
+  
+      if (insertError) throw insertError;
+  
       setHasSubmittedClue(true);
       setClue("");
       toast({
         title: "¡Pista enviada!",
         description: "Turno del siguiente lotso",
       });
-
+  
       // Pasar al siguiente lotso
       const currentIndex = alivePlayers.findIndex(p => p.id === currentPlayerId);
       const nextIndex = (currentIndex + 1) % alivePlayers.length;
       const nextPlayer = alivePlayers[nextIndex];
-
+  
       // Si todos enviaron su pista, pasar a votación
       if (clues.length + 1 >= alivePlayers.length) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('rounds')
-          .update({ 
+          .update({
             status: 'voting',
             current_turn_player_id: null
           })
-          .eq('id', currentRound.id);
+          .eq('id', effectiveRoundId);
+        if (updateError) throw updateError;
       } else {
         // Actualizar al siguiente lotso en turno
-        await supabase
+        const { error: turnError } = await supabase
           .from('rounds')
           .update({ current_turn_player_id: nextPlayer.id })
-          .eq('id', currentRound.id);
+          .eq('id', effectiveRoundId);
+        if (turnError) throw turnError;
       }
     } catch (error) {
-      console.error("Error submitting clue:", error);
+      console.error('Error submitting clue:', error);
       toast({
-        title: "Error al enviar pista",
-        description: error instanceof Error ? error.message : "No se pudo enviar la pista. Intenta de nuevo.",
-        variant: "destructive",
+        title: 'Error al enviar pista',
+        description: error instanceof Error ? error.message : 'No se pudo enviar la pista. Intenta de nuevo.',
+        variant: 'destructive',
       });
+    } finally {
+      setSubmittingClue(false);
     }
   };
 
@@ -278,7 +278,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .insert({
           round_id: currentRound.id,
           voter_id: currentPlayerId,
-          voted_player_id: votedPlayerId
+          voted_for_id: votedPlayerId
         });
 
       if (error) throw error;
@@ -313,7 +313,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     // Contar votos
     const voteCounts: { [key: string]: number } = {};
     allVotes.forEach(vote => {
-      voteCounts[vote.voted_player_id] = (voteCounts[vote.voted_player_id] || 0) + 1;
+      voteCounts[vote.voted_for_id] = (voteCounts[vote.voted_for_id] || 0) + 1;
     });
 
     // Encontrar el más votado
@@ -479,7 +479,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
                 variant="game"
                 className="w-full"
                 onClick={handleSubmitClue}
-                disabled={!clue.trim()}
+                disabled={!clue.trim() || submittingClue}
               >
                 Enviar pista
               </Button>
