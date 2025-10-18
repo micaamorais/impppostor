@@ -299,6 +299,9 @@ export const useGameRoom = (roomCode?: string) => {
         if (data) setCurrentRound(data);
       };
 
+      // Cargar la ronda actual inicialmente
+      await refreshRoundData();
+
       // Suscripción a rondas
       const roundsChannel = supabase
         .channel('rounds-changes')
