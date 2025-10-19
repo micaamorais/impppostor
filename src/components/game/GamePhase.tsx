@@ -115,19 +115,19 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Suscripción y cargas iniciales de pistas usando effectiveRoundId
   useEffect(() => {
     if (roundIdInvalid) return;
-    
+
     // Reset state when round changes
     setClues([]);
     setHasSubmittedClue(false);
     setClue("");
-    
+
     const fetchClues = async () => {
       const { data, error } = await supabase
         .from('clues')
         .select('*')
         .eq('round_id', effectiveRoundId);
       if (!error && data) setClues(data);
-    
+
       // Verificar si el jugador ya envió su pista en ESTA ronda
       if (currentPlayerId) {
         const { data: myClue } = await supabase
@@ -139,9 +139,9 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         if (myClue && myClue.length > 0) setHasSubmittedClue(true);
       }
     };
-  
+
     fetchClues();
-  
+
     const channel = supabase
       .channel(`clues-${effectiveRoundId}`)
       .on(
@@ -161,23 +161,23 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [effectiveRoundId, roundIdInvalid, currentPlayerId, currentRound?.id]);
+  }, [effectiveRoundId, roundIdInvalid, currentPlayerId, currentRound?.id, currentRound?.round_number]);
 
   // Suscripción y cargas iniciales de votos usando effectiveRoundId
   useEffect(() => {
     if (roundIdInvalid) return;
-    
+
     // Reset vote state when round changes
     setVotes([]);
     setHasVoted(false);
-    
+
     const fetchVotes = async () => {
       const { data, error } = await supabase
         .from('votes')
         .select('*')
         .eq('round_id', effectiveRoundId);
       if (!error && data) setVotes(data);
-    
+
       // Verificar si el jugador ya votó en ESTA ronda
       if (currentPlayerId) {
         const { data: myVote } = await supabase
@@ -189,9 +189,9 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         if (myVote && myVote.length > 0) setHasVoted(true);
       }
     };
-  
+
     fetchVotes();
-  
+
     const channel = supabase
       .channel(`votes-${effectiveRoundId}`)
       .on(
@@ -211,7 +211,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [effectiveRoundId, roundIdInvalid, currentPlayerId, currentRound?.id]);
+  }, [effectiveRoundId, roundIdInvalid, currentPlayerId, currentRound?.id, currentRound?.round_number]);
 
   // Eliminado duplicado: los handlers canónicos están más abajo y usan columnas válidas (clue_text, voted_for_id) y validación de UUID.
 
