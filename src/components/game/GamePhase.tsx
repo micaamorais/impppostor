@@ -120,6 +120,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     setHasVoted(false);
     setClue("");
     setShowWord(false);
+    setEffectiveRoundId(null); // Reset effectiveRoundId to force re-resolution
   }, [currentRound?.id, currentRound?.round_number]);
 
   // Suscripción y cargas iniciales de pistas usando effectiveRoundId
