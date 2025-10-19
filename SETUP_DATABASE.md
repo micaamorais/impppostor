@@ -12,8 +12,10 @@ Para que el juego funcione, necesitas ejecutar este SQL en tu proyecto de Supaba
 ## SQL a ejecutar:
 
 ```sql
--- Si ya ejecutaste el setup inicial, ejecuta esto primero para agregar la columna faltante:
-ALTER TABLE public.rounds ADD COLUMN IF NOT EXISTS current_turn_player_id uuid REFERENCES public.players(id) ON DELETE SET NULL;
+-- Si ya ejecutaste el setup inicial, ejecuta esto primero para agregar las columnas faltantes:
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS secret_word text;
+ALTER TABLE public.rounds DROP COLUMN IF EXISTS current_turn_player_id;
+ALTER TABLE public.rounds DROP COLUMN IF EXISTS secret_word;
 
 -- Tabla de salas
 create table public.rooms (
@@ -24,6 +26,7 @@ create table public.rooms (
   impostor_count int not null default 1,
   max_rounds int not null default 3,
   current_round int not null default 0,
+  secret_word text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   started_at timestamp with time zone,
   finished_at timestamp with time zone
@@ -45,9 +48,7 @@ create table public.rounds (
   id uuid primary key default gen_random_uuid(),
   room_id uuid references public.rooms(id) on delete cascade not null,
   round_number int not null,
-  secret_word text not null,
   status text not null check (status in ('waiting_clues', 'voting', 'finished')),
-  current_turn_player_id uuid references public.players(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   finished_at timestamp with time zone
 );

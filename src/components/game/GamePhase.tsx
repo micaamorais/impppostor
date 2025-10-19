@@ -18,9 +18,7 @@ type Round = {
   id: string;
   room_id: string;
   round_number: number;
-  secret_word: string;
   status: 'waiting_clues' | 'voting' | 'finished';
-  current_turn_player_id?: string | null;
 };
 
 type Clue = {
@@ -58,11 +56,27 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   const isImpostor = currentPlayer?.role === 'impostor';
   const alivePlayers = players.filter(p => p.is_alive);
 
-  // Estado para almacenar la palabra secreta real
+  // Estado para almacenar la palabra secreta real desde room
   const [realSecretWord, setRealSecretWord] = useState<string | null>(null);
   const [effectiveRoundId, setEffectiveRoundId] = useState<string | null>(
     currentRound?.id && isUuid(currentRound.id) ? currentRound.id : null
   );
+  
+  // Fetch the secret word from the room (it's stored there, not in rounds)
+  useEffect(() => {
+    const fetchSecretWord = async () => {
+      if (!roomId) return;
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('secret_word')
+        .eq('id', roomId)
+        .single();
+      if (!error && data?.secret_word) {
+        setRealSecretWord(data.secret_word);
+      }
+    };
+    fetchSecretWord();
+  }, [roomId]);
 
   // Resolver UUID real de la ronda si viene 'temp-round' o null
   useEffect(() => {
@@ -73,7 +87,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       try {
         const { data, error } = await supabase
           .from('rounds')
-          .select('id, secret_word')
+          .select('id')
           .eq('room_id', currentRound.room_id)
           .eq('round_number', currentRound.round_number)
           .limit(1)
@@ -81,7 +95,6 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         if (error) throw error;
         if (!cancelled && data?.id && isUuid(data.id)) {
           setEffectiveRoundId(data.id);
-          if (data.secret_word) setRealSecretWord(data.secret_word);
         }
       } catch (err) {
         console.error('resolveRoundId error', err);
@@ -102,6 +115,12 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Suscripción y cargas iniciales de pistas usando effectiveRoundId
   useEffect(() => {
     if (roundIdInvalid) return;
+    
+    // Reset state when round changes
+    setClues([]);
+    setHasSubmittedClue(false);
+    setClue("");
+    
     const fetchClues = async () => {
       const { data, error } = await supabase
         .from('clues')
@@ -109,7 +128,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .eq('round_id', effectiveRoundId);
       if (!error && data) setClues(data);
     
-      // Verificar si el jugador ya envió su pista
+      // Verificar si el jugador ya envió su pista en ESTA ronda
       if (currentPlayerId) {
         const { data: myClue } = await supabase
           .from('clues')
@@ -147,6 +166,11 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Suscripción y cargas iniciales de votos usando effectiveRoundId
   useEffect(() => {
     if (roundIdInvalid) return;
+    
+    // Reset vote state when round changes
+    setVotes([]);
+    setHasVoted(false);
+    
     const fetchVotes = async () => {
       const { data, error } = await supabase
         .from('votes')
@@ -154,7 +178,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .eq('round_id', effectiveRoundId);
       if (!error && data) setVotes(data);
     
-      // Verificar si el jugador ya votó
+      // Verificar si el jugador ya votó en ESTA ronda
       if (currentPlayerId) {
         const { data: myVote } = await supabase
           .from('votes')
@@ -232,31 +256,14 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .select('player_id')
         .eq('round_id', effectiveRoundId);
       
-      const clueCount = (allClues?.length || 0) + 1; // +1 for the one we just inserted
+      const clueCount = allClues?.length || 0;
       
       if (clueCount >= alivePlayers.length) {
         // All players have submitted, move to voting phase
         await supabase
           .from('rounds')
-          .update({ 
-            status: 'voting',
-            current_turn_player_id: null 
-          })
+          .update({ status: 'voting' })
           .eq('id', effectiveRoundId);
-      } else {
-        // Select next random player who hasn't submitted yet
-        const submittedPlayerIds = new Set(allClues?.map(c => c.player_id) || []);
-        submittedPlayerIds.add(currentPlayerId); // Add current player
-        
-        const remainingPlayers = alivePlayers.filter(p => !submittedPlayerIds.has(p.id));
-        const nextPlayer = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
-        
-        if (nextPlayer) {
-          await supabase
-            .from('rounds')
-            .update({ current_turn_player_id: nextPlayer.id })
-            .eq('id', effectiveRoundId);
-        }
       }
       
       toast({ title: "Pista enviada", description: "Tu pista fue registrada." });
@@ -355,21 +362,13 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
       if (nextStatus === 'waiting_clues') {
         const nextRoundNumber = (currentRound.round_number || 1) + 1;
-        // Generar nueva palabra (como el comportamiento previo)
-        const WORD_LIST = [
-          'Pizza', 'Playa', 'Guitarra', 'Montaña', 'Café', 'Libro', 'Fútbol', 'Perro',
-          'Lluvia', 'Verano', 'Luna', 'Cine', 'Chocolate', 'Bicicleta', 'Fiesta',
-        ];
-        const nextSecretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-
+        // No cambiar la palabra, sigue siendo la misma en room.secret_word
         await supabase
           .from('rounds')
           .insert({
             room_id: roomId,
             round_number: nextRoundNumber,
-            secret_word: nextSecretWord,
-            status: 'waiting_clues',
-            current_turn_player_id: alivePlayers.find(p => p.is_alive)?.id || null,
+            status: 'waiting_clues'
           });
       } else {
         await supabase
@@ -385,11 +384,8 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     }
   };
 
-  // Fase de dar pistas
+  // Fase de dar pistas - todos pueden enviar simultáneamente
   if (currentRound.status === 'waiting_clues') {
-    const effectiveTurnPlayerId = currentRound.current_turn_player_id ?? alivePlayers[0]?.id ?? null;
-    const currentTurnPlayer = alivePlayers.find(p => p.id === effectiveTurnPlayerId);
-    const isMyTurn = currentPlayerId === effectiveTurnPlayerId;
 
     return (
       <div className="space-y-6">
@@ -420,7 +416,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
             )}
             {!isImpostor && showWord && (
               <div className="text-3xl font-black text-gradient">
-                {realSecretWord || currentRound.secret_word}
+                {realSecretWord}
               </div>
             )}
             {isImpostor && (
@@ -433,18 +429,13 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
         <Card className="p-6 bg-gradient-to-br from-accent/20 to-primary/10">
           <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">Turno de:</p>
-            <p className="text-2xl font-bold">
-              {currentTurnPlayer?.name || "Cargando..."}
-              {isMyTurn && " 👈 ¡Tu turno!"}
-            </p>
             <p className="text-muted-foreground">
               {clues.length} / {alivePlayers.length} pistas enviadas
             </p>
           </div>
         </Card>
 
-        {!hasSubmittedClue && currentPlayer?.is_alive && isMyTurn ? (
+        {!hasSubmittedClue && currentPlayer?.is_alive ? (
           <Card className="p-6">
             <div className="space-y-4">
               <Label htmlFor="clue">Tu pista</Label>

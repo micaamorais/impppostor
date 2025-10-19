@@ -9,6 +9,7 @@ type Room = {
   impostor_count: number;
   max_rounds: number;
   current_round: number;
+  secret_word?: string | null;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -28,9 +29,7 @@ type Round = {
   id: string;
   room_id: string;
   round_number: number;
-  secret_word: string;
   status: 'waiting_clues' | 'voting' | 'finished';
-  current_turn_player_id: string | null;
   created_at: string;
   finished_at: string | null;
 };
@@ -171,30 +170,28 @@ export const useGameRoom = (roomCode?: string) => {
         if (upErr) throw new Error(upErr.message);
       }
 
-      // Actualizar estado de la sala
+      // Select secret word for the entire game
+      const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+      
+      // Actualizar estado de la sala con la palabra secreta
       const { error: roomUpdateErr } = await supabase
         .from('rooms')
         .update({ 
           status: 'playing', 
           started_at: new Date().toISOString(),
-          current_round: 1
+          current_round: 1,
+          secret_word: secretWord
         })
         .eq('id', roomId);
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
-      // Crear primera ronda con un jugador aleatorio en turno
-      const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-      const alivePlayers = allPlayers.filter(p => p.is_alive);
-      const randomPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-      
+      // Crear primera ronda sin palabra (la palabra está en room)
       const { data: firstRound, error: roundError } = await supabase
         .from('rounds')
         .insert({
           room_id: roomId,
           round_number: 1,
-          secret_word: secretWord,
-          status: 'waiting_clues',
-          current_turn_player_id: randomPlayer?.id || null
+          status: 'waiting_clues'
         })
         .select()
         .single();
