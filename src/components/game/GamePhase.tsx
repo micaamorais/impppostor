@@ -68,7 +68,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       if (!roomId) return;
       const { data, error } = await supabase
         .from('rooms')
-        .select('secret_word')
+        .select('*')
         .eq('id', roomId)
         .single();
       if (!error && data?.secret_word) {
