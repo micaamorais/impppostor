@@ -58,9 +58,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
 
   // Estado para almacenar la palabra secreta real desde room
   const [realSecretWord, setRealSecretWord] = useState<string | null>(null);
-  const [effectiveRoundId, setEffectiveRoundId] = useState<string | null>(
-    currentRound?.id && isUuid(currentRound.id) ? currentRound.id : null
-  );
+  const [effectiveRoundId, setEffectiveRoundId] = useState<string | null>(null);
   
   // Fetch the secret word from the room (it's stored there, not in rounds)
   useEffect(() => {
@@ -78,11 +76,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     fetchSecretWord();
   }, [roomId]);
 
-  // Resolver UUID real de la ronda si viene 'temp-round' o null
+  // Resolver UUID real de la ronda
   useEffect(() => {
     let cancelled = false;
     const resolveRoundId = async () => {
-      if (effectiveRoundId && isUuid(effectiveRoundId)) return; // ya válido
       if (!currentRound) return;
       try {
         const { data, error } = await supabase
@@ -120,6 +117,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     setHasVoted(false);
     setClue("");
     setShowWord(false);
+    setEffectiveRoundId(null); // Reset round ID to force re-resolution
   }, [currentRound?.id, currentRound?.round_number]);
 
   // Suscripción y cargas iniciales de pistas usando effectiveRoundId
@@ -131,7 +129,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .from('clues')
         .select('*')
         .eq('round_id', effectiveRoundId);
-      if (!error && data) setClues(data);
+      if (!error && data) {
+        setClues(data);
+        console.log('Fetched clues:', data.length, 'for round', effectiveRoundId);
+      }
 
       // Verificar si el jugador ya envió su pista en ESTA ronda
       if (currentPlayerId) {
@@ -141,7 +142,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           .eq('round_id', effectiveRoundId)
           .eq('player_id', currentPlayerId)
           .limit(1);
-        if (myClue && myClue.length > 0) setHasSubmittedClue(true);
+        if (myClue && myClue.length > 0) {
+          setHasSubmittedClue(true);
+          console.log('Player has already submitted clue for round', effectiveRoundId);
+        }
       }
     };
 
@@ -158,6 +162,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           filter: `round_id=eq.${effectiveRoundId}`,
         },
         (payload) => {
+          console.log('New clue received:', payload.new);
           setClues((prev) => [...prev, payload.new as any]);
         }
       )
@@ -177,7 +182,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .from('votes')
         .select('*')
         .eq('round_id', effectiveRoundId);
-      if (!error && data) setVotes(data);
+      if (!error && data) {
+        setVotes(data);
+        console.log('Fetched votes:', data.length, 'for round', effectiveRoundId);
+      }
 
       // Verificar si el jugador ya votó en ESTA ronda
       if (currentPlayerId) {
@@ -187,7 +195,10 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           .eq('round_id', effectiveRoundId)
           .eq('voter_id', currentPlayerId)
           .limit(1);
-        if (myVote && myVote.length > 0) setHasVoted(true);
+        if (myVote && myVote.length > 0) {
+          setHasVoted(true);
+          console.log('Player has already voted for round', effectiveRoundId);
+        }
       }
     };
 
@@ -204,6 +215,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           filter: `round_id=eq.${effectiveRoundId}`,
         },
         (payload) => {
+          console.log('New vote received:', payload.new);
           setVotes((prev) => [...prev, payload.new as any]);
         }
       )
@@ -273,9 +285,11 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         .eq('round_id', effectiveRoundId);
 
       const clueCount = allClues?.length || 0;
+      console.log('Total clues after submission:', clueCount, 'Alive players:', alivePlayers.length);
 
       if (clueCount >= alivePlayers.length) {
         // All players have submitted, move to voting phase
+        console.log('All players have submitted clues, moving to voting phase');
         await supabase
           .from('rounds')
           .update({ status: 'voting' })
@@ -463,6 +477,11 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
             <p className="text-muted-foreground">
               {clues.length} / {alivePlayers.length} pistas enviadas
             </p>
+            {process.env.NODE_ENV === 'development' && (
+              <p className="text-xs text-muted-foreground">
+                Round ID: {effectiveRoundId?.substring(0, 8)}...
+              </p>
+            )}
           </div>
         </Card>
 
