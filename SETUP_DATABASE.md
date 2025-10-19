@@ -12,6 +12,9 @@ Para que el juego funcione, necesitas ejecutar este SQL en tu proyecto de Supaba
 ## SQL a ejecutar:
 
 ```sql
+-- Si ya ejecutaste el setup inicial, ejecuta esto primero para agregar la columna faltante:
+ALTER TABLE public.rounds ADD COLUMN IF NOT EXISTS current_turn_player_id uuid REFERENCES public.players(id) ON DELETE SET NULL;
+
 -- Tabla de salas
 create table public.rooms (
   id uuid primary key default gen_random_uuid(),
