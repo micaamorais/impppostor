@@ -18,7 +18,7 @@ type Round = {
   id: string;
   room_id: string;
   round_number: number;
-  status: 'waiting_clues' | 'voting' | 'finished';
+  status: 'waiting_clues' | 'voting' | 'finished';nm
 };
 
 type Clue = {
