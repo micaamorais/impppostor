@@ -416,6 +416,9 @@ export const useGameRoom = (roomCode?: string) => {
         .select('*');
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
+      // Manually update local room state to trigger immediate re-render
+      setRoom(prev => prev ? { ...prev, status: 'playing', current_round: 1, secret_word: secretWord } : null);
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al reiniciar el juego');
