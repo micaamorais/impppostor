@@ -394,6 +394,13 @@ export const useGameRoom = (roomCode?: string) => {
         .select('*');
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
+      // Eliminar rondas anteriores para evitar conflictos de unicidad
+      const { error: deleteRoundsErr } = await supabase
+        .from('rounds')
+        .delete()
+        .eq('room_id', roomId);
+      if (deleteRoundsErr) throw new Error(deleteRoundsErr.message);
+
       // Crear nueva primera ronda
       const { data: firstRound, error: roundError } = await supabase
         .from('rounds')
