@@ -368,7 +368,8 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           .insert({
             room_id: roomId,
             round_number: nextRoundNumber,
-            status: 'waiting_clues'
+            status: 'waiting_clues',
+            secret_word: realSecretWord
           });
       } else {
         await supabase
