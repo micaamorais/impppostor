@@ -20,7 +20,7 @@ const PlaySection = () => {
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { room, players, currentRound, loading, createRoom, joinRoom, startGame } = useGameRoom(createdRoomCode || undefined);
+  const { room, players, currentRound, loading, createRoom, joinRoom, startGame, restartGame, exitToLobby } = useGameRoom(createdRoomCode || undefined);
   const { playerId, savePlayerId } = useCurrentPlayer(createdRoomCode);
 
   const handleCreateRoom = async (e: React.FormEvent) => {
@@ -86,7 +86,7 @@ const PlaySection = () => {
 
   const handleStartGame = async () => {
     if (!room) return;
-    
+
     try {
       await startGame(room.id);
       toast({
@@ -101,6 +101,46 @@ const PlaySection = () => {
         variant: "destructive",
       });
       console.error('startGame error:', error);
+    }
+  };
+
+  const handleRestartGame = async () => {
+    if (!room) return;
+
+    try {
+      await restartGame(room.id);
+      toast({
+        title: "¡Juego reiniciado! 🔄",
+        description: "Roles reasignados y nueva palabra secreta",
+      });
+    } catch (error) {
+      const message = (error as any)?.message || (error instanceof Error ? error.message : "No se pudo reiniciar el juego");
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      console.error('restartGame error:', error);
+    }
+  };
+
+  const handleExitToLobby = async () => {
+    if (!room) return;
+
+    try {
+      await exitToLobby(room.id);
+      toast({
+        title: "¡Saliste al lobby! 🏠",
+        description: "Puedes configurar una nueva partida",
+      });
+    } catch (error) {
+      const message = (error as any)?.message || (error instanceof Error ? error.message : "No se pudo salir al lobby");
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      console.error('exitToLobby error:', error);
     }
   };
 
@@ -218,9 +258,29 @@ const PlaySection = () => {
               {room.status === 'finished' && (
                 <div className="text-center p-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg">
                   <p className="text-2xl font-bold">¡Juego terminado!</p>
-                  <p className="text-muted-foreground mt-2">
+                  <p className="text-muted-foreground mt-2 mb-4">
                     Gracias por jugar
                   </p>
+                  {players.find(p => p.id === playerId)?.is_host && (
+                    <div className="flex gap-3 justify-center">
+                      <Button
+                        variant="game"
+                        size="lg"
+                        onClick={handleRestartGame}
+                        disabled={loading}
+                      >
+                        🔄 Reiniciar ronda
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handleExitToLobby}
+                        disabled={loading}
+                      >
+                        🏠 Salir al lobby
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
