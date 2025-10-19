@@ -240,7 +240,7 @@ const PlaySection = () => {
                 </>
               )}
 
-              {room.status === 'playing' && currentRound ? (
+              {room.status === 'playing' && currentRound && currentRound.id ? (
                  <GamePhase
                    roomId={room.id}
                    currentRound={currentRound}
