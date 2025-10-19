@@ -358,7 +358,7 @@ const PlaySection = () => {
                       id="rounds" 
                       type="number" 
                       min="3" 
-                      max="10" 
+                      max="20" 
                       value={maxRounds}
                       onChange={(e) => setMaxRounds(parseInt(e.target.value))}
                       className="bg-background border-2"
