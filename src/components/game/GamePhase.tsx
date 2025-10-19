@@ -112,14 +112,19 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Deshabilitar acciones si round_id inválido
   const roundIdInvalid = !effectiveRoundId || !isUuid(effectiveRoundId);
 
+  // Reset state when round changes
+  useEffect(() => {
+    setClues([]);
+    setVotes([]);
+    setHasSubmittedClue(false);
+    setHasVoted(false);
+    setClue("");
+    setShowWord(false);
+  }, [currentRound?.id, currentRound?.round_number]);
+
   // Suscripción y cargas iniciales de pistas usando effectiveRoundId
   useEffect(() => {
     if (roundIdInvalid) return;
-
-    // Reset state when round changes
-    setClues([]);
-    setHasSubmittedClue(false);
-    setClue("");
 
     const fetchClues = async () => {
       const { data, error } = await supabase
@@ -166,10 +171,6 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Suscripción y cargas iniciales de votos usando effectiveRoundId
   useEffect(() => {
     if (roundIdInvalid) return;
-
-    // Reset vote state when round changes
-    setVotes([]);
-    setHasVoted(false);
 
     const fetchVotes = async () => {
       const { data, error } = await supabase
