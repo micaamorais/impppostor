@@ -176,13 +176,14 @@ export const useGameRoom = (roomCode?: string) => {
       // Actualizar estado de la sala con la palabra secreta
       const { error: roomUpdateErr } = await supabase
         .from('rooms')
-        .update({ 
-          status: 'playing', 
+        .update({
+          status: 'playing',
           started_at: new Date().toISOString(),
           current_round: 1,
           secret_word: secretWord
         })
-        .eq('id', roomId);
+        .eq('id', roomId)
+        .select('*');
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
       // Crear primera ronda sin palabra (la palabra está en room)
