@@ -19,7 +19,7 @@ const HeroSection = () => {
               PREPUSTOR
             </h1>
             <p className="text-2xl md:text-3xl text-muted-foreground font-medium">
-              Un juego de palabras, engaños y risas
+              Un juego para una familita inseparable
             </p>
             <p className="text-lg text-muted-foreground max-w-2xl">
               Todos reciben una palabra secreta... excepto el prepustor. ¿Quién miente mejor? 
