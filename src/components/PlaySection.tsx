@@ -12,9 +12,9 @@ import GamePhase from "@/components/game/GamePhase";
 const PlaySection = () => {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showJoinRoom, setShowJoinRoom] = useState(false);
-  const [maxPlayers, setMaxPlayers] = useState(6);
+  const [maxPlayers, setMaxPlayers] = useState(20);
   const [impostorCount, setImpostorCount] = useState(1);
-  const [maxRounds, setMaxRounds] = useState(5);
+  const [maxRounds, setMaxRounds] = useState(20);
   const [playerName, setPlayerName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
@@ -44,7 +44,7 @@ const PlaySection = () => {
       setShowCreateRoom(false);
       toast({
         title: "¡Sala creada! 🎉",
-        description: `Código: ${code} - Comparte el código con tus amigos`,
+        description: `Código: ${code} - Comparte el código con tus esmegmitas`,
       });
     } catch (error) {
       toast({
@@ -286,7 +286,7 @@ const PlaySection = () => {
                       id="impostors" 
                       type="number" 
                       min="1" 
-                      max="5" 
+                      max="18" 
                       value={impostorCount}
                       onChange={(e) => setImpostorCount(parseInt(e.target.value))}
                       className="bg-background border-2"
