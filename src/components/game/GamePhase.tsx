@@ -322,7 +322,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setHasVoted(true);
       toast({
         title: "¡Voto registrado!",
-        description: "Esperando a los demás lotsos
+        description: "Esperando a los demás lotsos"
       });
 
       // Si todos votaron, calcular resultado
