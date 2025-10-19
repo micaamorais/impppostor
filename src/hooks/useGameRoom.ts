@@ -382,18 +382,6 @@ export const useGameRoom = (roomCode?: string) => {
       // Select new secret word
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
 
-      // Actualizar estado de la sala con la nueva palabra secreta
-      const { error: roomUpdateErr } = await supabase
-        .from('rooms')
-        .update({
-          status: 'playing',
-          current_round: 1,
-          secret_word: secretWord
-        })
-        .eq('id', roomId)
-        .select('*');
-      if (roomUpdateErr) throw new Error(roomUpdateErr.message);
-
       // Eliminar rondas anteriores para evitar conflictos de unicidad
       const { error: deleteRoundsErr } = await supabase
         .from('rounds')
@@ -415,6 +403,18 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (roundError) throw new Error(roundError.message);
       if (firstRound) setCurrentRound(firstRound);
+
+      // Actualizar estado de la sala con la nueva palabra secreta
+      const { error: roomUpdateErr } = await supabase
+        .from('rooms')
+        .update({
+          status: 'playing',
+          current_round: 1,
+          secret_word: secretWord
+        })
+        .eq('id', roomId)
+        .select('*');
+      if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
       return true;
     } catch (err) {
