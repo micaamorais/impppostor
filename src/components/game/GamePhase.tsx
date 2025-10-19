@@ -48,6 +48,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   const [hasSubmittedClue, setHasSubmittedClue] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [showWord, setShowWord] = useState(false);
+  const [playerOrder, setPlayerOrder] = useState<Player[]>([]);
   const { toast } = useToast();
   
   // Add submitting state to prevent duplicate inserts
@@ -59,10 +60,11 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Estado para almacenar la palabra secreta real desde room
   const [realSecretWord, setRealSecretWord] = useState<string | null>(null);
   const [effectiveRoundId, setEffectiveRoundId] = useState<string | null>(null);
+  const [gamePlayerOrder, setGamePlayerOrder] = useState<Player[]>([]);
   
-  // Fetch the secret word from the room (it's stored there, not in rounds)
+  // Fetch the secret word and establish player order for the game
   useEffect(() => {
-    const fetchSecretWord = async () => {
+    const fetchGameData = async () => {
       if (!roomId) return;
       const { data, error } = await supabase
         .from('rooms')
@@ -72,9 +74,16 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       if (!error && data?.secret_word) {
         setRealSecretWord(data.secret_word);
       }
+
+      // Establish random player order for the entire game (only once)
+      if (gamePlayerOrder.length === 0 && players.length > 0) {
+        const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+        setGamePlayerOrder(shuffledPlayers);
+        console.log('Player order established:', shuffledPlayers.map(p => p.name));
+      }
     };
-    fetchSecretWord();
-  }, [roomId]);
+    fetchGameData();
+  }, [roomId, players, gamePlayerOrder.length]);
 
   // Resolver UUID real de la ronda
   useEffect(() => {
@@ -118,11 +127,20 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     setClue("");
     setShowWord(false);
     setEffectiveRoundId(null); // Reset round ID to force re-resolution
+    // Reset player order for this round (will be set based on game order)
+    setPlayerOrder([]);
   }, [currentRound?.id, currentRound?.round_number]);
 
-  // Suscripción y cargas iniciales de pistas usando effectiveRoundId
+  // Set player order for this round and fetch clues
   useEffect(() => {
     if (roundIdInvalid) return;
+
+    // Set player order for this round based on game order, but only alive players
+    if (gamePlayerOrder.length > 0 && playerOrder.length === 0) {
+      const aliveOrderedPlayers = gamePlayerOrder.filter(p => p.is_alive);
+      setPlayerOrder(aliveOrderedPlayers);
+      console.log('Round player order set:', aliveOrderedPlayers.map(p => p.name));
+    }
 
     const fetchClues = async () => {
       const { data, error } = await supabase
@@ -523,14 +541,14 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           <Card className="p-6">
             <h4 className="text-xl font-bold mb-4">Pistas enviadas:</h4>
             <div className="space-y-2">
-              {clues.map((c) => {
-                const player = players.find(p => p.id === c.player_id);
+              {playerOrder.map((player) => {
+                const playerClue = clues.find(c => c.player_id === player.id);
                 return (
                   <div
-                    key={c.id}
+                    key={player.id}
                     className="p-3 bg-background rounded-lg border-2 border-border"
                   >
-                    <span className="font-medium">{player?.name}:</span> {c.clue_text}
+                    <span className="font-medium">{player.name}:</span> {playerClue?.clue_text || "Esperando pista..."}
                   </div>
                 );
               })}
@@ -555,7 +573,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         <Card className="p-6">
           <h4 className="text-xl font-bold mb-4">Pistas de todos:</h4>
           <div className="space-y-3">
-            {alivePlayers.map((player) => {
+            {playerOrder.map((player) => {
               const playerClue = clues.find(c => c.player_id === player.id);
               return (
                 <div
