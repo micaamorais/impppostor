@@ -166,7 +166,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [effectiveRoundId, roundIdInvalid, currentPlayerId]);
+  }, [effectiveRoundId, roundIdInvalid, currentPlayerId, currentRound?.id, currentRound?.round_number]);
 
   // Suscripción y cargas iniciales de votos usando effectiveRoundId
   useEffect(() => {
@@ -212,7 +212,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [effectiveRoundId, roundIdInvalid, currentPlayerId]);
+  }, [effectiveRoundId, roundIdInvalid, currentPlayerId, currentRound?.id, currentRound?.round_number]);
 
   // Eliminado duplicado: los handlers canónicos están más abajo y usan columnas válidas (clue_text, voted_for_id) y validación de UUID.
 
@@ -322,7 +322,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setHasVoted(true);
       toast({
         title: "¡Voto registrado!",
-        description: "Esperando a los demás lotsos"
+        description: "Esperando a los demás lotsos..."
       });
 
       // Si todos votaron, calcular resultado
