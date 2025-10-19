@@ -192,9 +192,10 @@ export const useGameRoom = (roomCode?: string) => {
         .insert({
           room_id: roomId,
           round_number: 1,
-          status: 'waiting_clues'
+          status: 'waiting_clues',
+          secret_word: secretWord
         })
-        .select()
+        .select('*')
         .single();
 
       if (roundError) throw new Error(roundError.message);
