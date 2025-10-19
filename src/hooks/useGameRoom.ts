@@ -414,7 +414,11 @@ export const useGameRoom = (roomCode?: string) => {
         .single();
 
       if (roundError) throw new Error(roundError.message);
-      if (firstRound) setCurrentRound(firstRound);
+      if (firstRound) {
+        setCurrentRound(firstRound);
+        // Manually update room state to ensure immediate re-render
+        setRoom(prev => prev ? { ...prev, current_round: 1 } : null);
+      }
 
       return true;
     } catch (err) {
