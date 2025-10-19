@@ -335,6 +335,115 @@ export const useGameRoom = (roomCode?: string) => {
     setupRealtimeSubscriptions();
   }, [roomCode]);
 
+  // Reiniciar el juego con los mismos jugadores (reasignar roles aleatoriamente, nueva palabra secreta)
+  const restartGame = async (roomId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Obtener todos los jugadores
+      const { data: allPlayers, error: playersError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('room_id', roomId);
+
+      if (playersError) throw playersError;
+      if (!allPlayers || allPlayers.length < 3) {
+        throw new Error('Se necesitan al menos 3 lotsos');
+      }
+
+      const { data: roomData } = await supabase
+        .from('rooms')
+        .select('impostor_count')
+        .eq('id', roomId)
+        .single();
+
+      if (!roomData) throw new Error('Sala no encontrada');
+
+      // Resetear is_alive para todos los jugadores
+      await supabase
+        .from('players')
+        .update({ is_alive: true })
+        .eq('room_id', roomId);
+
+      // Asignar roles aleatoriamente
+      const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
+      const impostorCount = roomData.impostor_count;
+
+      for (let i = 0; i < shuffled.length; i++) {
+        const role = i < impostorCount ? 'impostor' : 'player';
+        const { error: upErr } = await supabase
+          .from('players')
+          .update({ role })
+          .eq('id', shuffled[i].id);
+        if (upErr) throw new Error(upErr.message);
+      }
+
+      // Select new secret word
+      const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+
+      // Actualizar estado de la sala con la nueva palabra secreta
+      const { error: roomUpdateErr } = await supabase
+        .from('rooms')
+        .update({
+          status: 'playing',
+          current_round: 1,
+          secret_word: secretWord
+        })
+        .eq('id', roomId)
+        .select('*');
+      if (roomUpdateErr) throw new Error(roomUpdateErr.message);
+
+      // Crear nueva primera ronda
+      const { data: firstRound, error: roundError } = await supabase
+        .from('rounds')
+        .insert({
+          room_id: roomId,
+          round_number: 1,
+          status: 'waiting_clues',
+          secret_word: secretWord
+        })
+        .select('*')
+        .single();
+
+      if (roundError) throw new Error(roundError.message);
+      if (firstRound) setCurrentRound(firstRound);
+
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al reiniciar el juego');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Salir al lobby (volver a estado waiting)
+  const exitToLobby = async (roomId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Actualizar estado de la sala a waiting y resetear current_round
+      const { error: roomUpdateErr } = await supabase
+        .from('rooms')
+        .update({
+          status: 'waiting',
+          current_round: 0
+        })
+        .eq('id', roomId);
+
+      if (roomUpdateErr) throw new Error(roomUpdateErr.message);
+
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al salir al lobby');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     room,
     players,
@@ -343,6 +452,8 @@ export const useGameRoom = (roomCode?: string) => {
     error,
     createRoom,
     joinRoom,
-    startGame
+    startGame,
+    restartGame,
+    exitToLobby
   };
 };
