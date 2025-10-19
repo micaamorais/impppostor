@@ -212,6 +212,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     setSubmittingClue(true);
   
     try {
+      // Insert the clue
       const { error } = await supabase
         .from('clues')
         .insert({
@@ -224,6 +225,40 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   
       setHasSubmittedClue(true);
       setClue("");
+      
+      // Get updated clues to check if all have submitted
+      const { data: allClues } = await supabase
+        .from('clues')
+        .select('player_id')
+        .eq('round_id', effectiveRoundId);
+      
+      const clueCount = (allClues?.length || 0) + 1; // +1 for the one we just inserted
+      
+      if (clueCount >= alivePlayers.length) {
+        // All players have submitted, move to voting phase
+        await supabase
+          .from('rounds')
+          .update({ 
+            status: 'voting',
+            current_turn_player_id: null 
+          })
+          .eq('id', effectiveRoundId);
+      } else {
+        // Select next random player who hasn't submitted yet
+        const submittedPlayerIds = new Set(allClues?.map(c => c.player_id) || []);
+        submittedPlayerIds.add(currentPlayerId); // Add current player
+        
+        const remainingPlayers = alivePlayers.filter(p => !submittedPlayerIds.has(p.id));
+        const nextPlayer = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
+        
+        if (nextPlayer) {
+          await supabase
+            .from('rounds')
+            .update({ current_turn_player_id: nextPlayer.id })
+            .eq('id', effectiveRoundId);
+        }
+      }
+      
       toast({ title: "Pista enviada", description: "Tu pista fue registrada." });
     } catch (err: any) {
       console.error("Error enviando pista:", err);

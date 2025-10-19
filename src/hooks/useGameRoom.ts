@@ -182,16 +182,19 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('id', roomId);
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
 
-      // Crear primera ronda con el primer jugador vivo en turno
+      // Crear primera ronda con un jugador aleatorio en turno
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-      const firstPlayer = allPlayers.find(p => p.is_alive);
+      const alivePlayers = allPlayers.filter(p => p.is_alive);
+      const randomPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      
       const { data: firstRound, error: roundError } = await supabase
         .from('rounds')
         .insert({
           room_id: roomId,
           round_number: 1,
           secret_word: secretWord,
-          status: 'waiting_clues'
+          status: 'waiting_clues',
+          current_turn_player_id: randomPlayer?.id || null
         })
         .select()
         .single();
