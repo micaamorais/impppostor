@@ -233,10 +233,25 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   const handleSubmitClue = async () => {
     if (!clue.trim() || !currentPlayerId || !effectiveRoundId) return;
     if (submittingClue || hasSubmittedClue) return;
-  
+
     setSubmittingClue(true);
-  
+
     try {
+      // Check if clue already exists for this player in this round
+      const { data: existingClue } = await supabase
+        .from('clues')
+        .select('id')
+        .eq('round_id', effectiveRoundId)
+        .eq('player_id', currentPlayerId)
+        .limit(1);
+
+      if (existingClue && existingClue.length > 0) {
+        setHasSubmittedClue(true);
+        setClue("");
+        toast({ title: "Ya enviaste una pista", description: "Tu pista ya fue registrada." });
+        return;
+      }
+
       // Insert the clue
       const { error } = await supabase
         .from('clues')
@@ -245,20 +260,20 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           player_id: currentPlayerId,
           clue_text: clue.trim(),
         });
-  
+
       if (error) throw error;
-  
+
       setHasSubmittedClue(true);
       setClue("");
-      
+
       // Get updated clues to check if all have submitted
       const { data: allClues } = await supabase
         .from('clues')
         .select('player_id')
         .eq('round_id', effectiveRoundId);
-      
+
       const clueCount = allClues?.length || 0;
-      
+
       if (clueCount >= alivePlayers.length) {
         // All players have submitted, move to voting phase
         await supabase
@@ -266,7 +281,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
           .update({ status: 'voting' })
           .eq('id', effectiveRoundId);
       }
-      
+
       toast({ title: "Pista enviada", description: "Tu pista fue registrada." });
     } catch (err: any) {
       console.error("Error enviando pista:", err);
@@ -280,6 +295,20 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     if (!currentPlayerId || hasVoted) return;
 
     try {
+      // Check if vote already exists for this player in this round
+      const { data: existingVote } = await supabase
+        .from('votes')
+        .select('id')
+        .eq('round_id', effectiveRoundId)
+        .eq('voter_id', currentPlayerId)
+        .limit(1);
+
+      if (existingVote && existingVote.length > 0) {
+        setHasVoted(true);
+        toast({ title: "Ya votaste", description: "Tu voto ya fue registrado." });
+        return;
+      }
+
       const { error } = await supabase
         .from('votes')
         .insert({
@@ -293,7 +322,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setHasVoted(true);
       toast({
         title: "¡Voto registrado!",
-        description: "Esperando a los demás lotsos",
+        description: "Esperando a los demás lotsos
       });
 
       // Si todos votaron, calcular resultado
