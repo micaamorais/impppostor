@@ -199,7 +199,6 @@ export const useGameRoom = (roomCode?: string) => {
         .single();
 
       if (roundError) throw new Error(roundError.message);
-      if (firstRound) setCurrentRound(firstRound);
 
       return true;
     } catch (err) {
@@ -382,16 +381,26 @@ export const useGameRoom = (roomCode?: string) => {
       // Select new secret word
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
 
-      // Eliminar rondas anteriores para evitar conflictos de unicidad
+      // Get all existing round ids for the room
+      const { data: existingRounds } = await supabase
+        .from('rounds')
+        .select('id')
+        .eq('room_id', roomId);
+
+      const roundIds = existingRounds?.map(r => r.id) || [];
+
+      // Delete clues and votes for these rounds
+      if (roundIds.length > 0) {
+        await supabase.from('clues').delete().in('round_id', roundIds);
+        await supabase.from('votes').delete().in('round_id', roundIds);
+      }
+
+      // Delete rounds
       const { error: deleteRoundsErr } = await supabase
         .from('rounds')
         .delete()
         .eq('room_id', roomId);
       if (deleteRoundsErr) throw new Error(deleteRoundsErr.message);
-
-      // Delete all clues and votes
-      await supabase.from('clues').delete().eq('room_id', roomId);
-      await supabase.from('votes').delete().eq('room_id', roomId);
 
       // Crear nueva primera ronda PRIMERO
       const { data: firstRound, error: roundError } = await supabase
