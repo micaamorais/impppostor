@@ -617,6 +617,60 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId, setCurrentR
     );
   }
 
+  // Fase de votación
+  if (currentRound.status === 'voting') {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 bg-gradient-to-br from-destructive/20 to-primary/20">
+          <div className="text-center space-y-4">
+            <h3 className="text-2xl font-bold">Fase de votación</h3>
+            <p className="text-lg">Lee las pistas y vota quién crees que es el impostor</p>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h4 className="text-xl font-bold mb-4">Pistas de todos:</h4>
+          <div className="space-y-3">
+            {alivePlayers.map((player) => {
+              const playerClue = clues.find(c => c.player_id === player.id);
+              return (
+                <div
+                  key={player.id}
+                  className="p-4 bg-background rounded-lg border-2 border-border space-y-2"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold">{player.name}</span>
+                    {!hasVoted && currentPlayer?.is_alive && player.id !== currentPlayerId && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleVote(player.id)}
+                      >
+                        Votar
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground">
+                    Pista: {playerClue?.clue_text || "No envió pista"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        {hasVoted && (
+          <Card className="p-6 text-center">
+            <p className="text-lg">Voto registrado. Esperando resultados...</p>
+            <p className="text-muted-foreground mt-2">
+              {votes.length} / {alivePlayers.length} votos
+            </p>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
   return null;
 };
 
