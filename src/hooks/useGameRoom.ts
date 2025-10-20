@@ -200,6 +200,9 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (roundError) throw new Error(roundError.message);
 
+      // Update local state immediately to ensure GamePhase renders
+      setCurrentRound(firstRound);
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar el juego');
@@ -463,6 +466,9 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('id', roomId);
 
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
+
+      // Clear local state to avoid remnants from previous round
+      setCurrentRound(null);
 
       return true;
     } catch (err) {
