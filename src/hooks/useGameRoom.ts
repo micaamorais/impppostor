@@ -469,6 +469,14 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (playersResetErr) throw new Error(playersResetErr.message);
 
+      // Borrar todas las pistas (clues) asociadas a esa sala
+      const { error: cluesDeleteErr } = await supabase
+        .from('clues')
+        .delete()
+        .eq('room_id', roomId);
+
+      if (cluesDeleteErr) throw new Error(cluesDeleteErr.message);
+
       // Actualizar estado de la sala a waiting, resetear current_round y limpiar secret_word
       const { error: roomUpdateErr } = await supabase
         .from('rooms')
