@@ -81,6 +81,16 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     let cancelled = false;
     const resolveRoundId = async () => {
       if (!currentRound) return;
+      
+      // If currentRound already has a valid UUID id, use it directly
+      if (currentRound.id && isUuid(currentRound.id)) {
+        if (!cancelled) {
+          setEffectiveRoundId(currentRound.id);
+        }
+        return;
+      }
+      
+      // Otherwise, try to resolve from database
       try {
         const { data, error } = await supabase
           .from('rounds')
@@ -99,7 +109,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     };
     resolveRoundId();
     return () => { cancelled = true; };
-  }, [currentRound?.room_id, currentRound?.round_number]);
+  }, [currentRound?.id, currentRound?.room_id, currentRound?.round_number]);
 
   // Validar UUID helper
   function isUuid(val: string) {
@@ -109,7 +119,7 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
   // Deshabilitar acciones si round_id inválido
   const roundIdInvalid = !effectiveRoundId || !isUuid(effectiveRoundId);
 
-  // Reset state when round changes
+  // Reset state when round number changes (not just round id)
   useEffect(() => {
     setClues([]);
     setVotes([]);
@@ -117,8 +127,8 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
     setHasVoted(false);
     setClue("");
     setShowWord(false);
-    setEffectiveRoundId(null); // Reset round ID to force re-resolution
-  }, [currentRound?.id, currentRound?.round_number]);
+    // Don't reset effectiveRoundId here - let the resolve effect handle it
+  }, [currentRound?.round_number]);
 
   // Suscripción y cargas iniciales de pistas usando effectiveRoundId
   useEffect(() => {
