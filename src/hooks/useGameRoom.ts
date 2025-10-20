@@ -192,8 +192,7 @@ export const useGameRoom = (roomCode?: string) => {
         .insert({
           room_id: roomId,
           round_number: 1,
-          status: 'waiting_clues',
-          secret_word: secretWord
+          status: 'waiting_clues'
         })
         .select('*')
         .single();
@@ -399,7 +398,7 @@ export const useGameRoom = (roomCode?: string) => {
         .insert({
           room_id: roomId,
           round_number: 1,
-          status: 'clues'
+          status: 'waiting_clues'
         })
         .select('*')
         .single();
