@@ -402,21 +402,7 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('room_id', roomId);
       if (deleteRoundsErr) throw new Error(deleteRoundsErr.message);
 
-      // Crear nueva primera ronda PRIMERO
-      const { data: firstRound, error: roundError } = await supabase
-        .from('rounds')
-        .insert({
-          room_id: roomId,
-          round_number: 1,
-          status: 'waiting_clues',
-          secret_word: secretWord
-        })
-        .select('*')
-        .single();
-
-      if (roundError) throw new Error(roundError.message);
-
-      // Actualizar estado de la sala con la nueva palabra secreta DESPUÉS de crear la ronda
+      // Actualizar estado de la sala con la nueva palabra secreta PRIMERO
       const { data: updatedRoom, error: roomUpdateErr } = await supabase
         .from('rooms')
         .update({
@@ -429,6 +415,20 @@ export const useGameRoom = (roomCode?: string) => {
         .single();
 
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
+
+      // Crear nueva primera ronda DESPUÉS de actualizar la sala
+      const { data: firstRound, error: roundError } = await supabase
+        .from('rounds')
+        .insert({
+          room_id: roomId,
+          round_number: 1,
+          status: 'waiting_clues',
+          secret_word: secretWord
+        })
+        .select('*')
+        .single();
+
+      if (roundError) throw new Error(roundError.message);
 
       // Update local state immediately
       if (firstRound) {
