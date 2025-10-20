@@ -266,10 +266,10 @@ const PlaySection = () => {
                       <Button
                         variant="game"
                         size="lg"
-                        onClick={handleRestartGame}
+                        onClick={handleExitToLobby}
                         disabled={loading}
                       >
-                        🔄 Reiniciar ronda
+                        🔄 Reiniciar partida
                       </Button>
                       <Button
                         variant="outline"
