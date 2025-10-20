@@ -246,6 +246,10 @@ const PlaySection = () => {
                    currentRound={currentRound}
                    players={players}
                    currentPlayerId={playerId}
+                   setCurrentRound={(round) => {
+                     // This is a placeholder - the hook will update via subscriptions
+                     console.log('Round updated to:', round);
+                   }}
                  />
                ) : room.status === 'playing' ? (
                  <div className="text-center p-6 bg-muted rounded-lg">
