@@ -200,6 +200,8 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (roundError) throw new Error(roundError.message);
 
+      console.log('[DEBUG] firstRound creado:', firstRound);
+
       // Update local state immediately to ensure GamePhase renders
       setCurrentRound(firstRound);
 
