@@ -159,7 +159,7 @@ const PlaySection = () => {
   // Si hay una sala activa, mostrar el lobby
   if (room) {
     console.log("Room status:", room.status, "Current round:", currentRound);
-    
+
     return (
       <section id="jugar" className="py-20 px-4 bg-gradient-to-b from-background to-muted">
         <div className="container mx-auto max-w-4xl">
