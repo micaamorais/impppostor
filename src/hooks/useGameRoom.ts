@@ -389,14 +389,17 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('room_id', roomId);
       if (deleteRoundsErr) throw new Error(deleteRoundsErr.message);
 
+      // Delete all clues and votes
+      await supabase.from('clues').delete().eq('room_id', roomId);
+      await supabase.from('votes').delete().eq('room_id', roomId);
+
       // Crear nueva primera ronda PRIMERO
       const { data: firstRound, error: roundError } = await supabase
         .from('rounds')
         .insert({
           room_id: roomId,
           round_number: 1,
-          status: 'waiting_clues',
-          secret_word: secretWord
+          status: 'clues'
         })
         .select('*')
         .single();
