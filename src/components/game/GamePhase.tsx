@@ -39,9 +39,10 @@ type GamePhaseProps = {
   currentRound: Round;
   players: Player[];
   currentPlayerId: string | null;
+  setCurrentRound?: (round: Round) => void;
 };
 
-const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhaseProps) => {
+const GamePhase = ({ roomId, currentRound, players, currentPlayerId, setCurrentRound }: GamePhaseProps) => {
   const [clue, setClue] = useState("");
   const [clues, setClues] = useState<Clue[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
@@ -290,22 +291,31 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
       setHasSubmittedClue(true);
       setClue("");
 
-      // Get updated clues to check if all have submitted
-      const { data: allClues } = await supabase
+      // Count alive players in the room
+      const { count: totalPlayers } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', roomId)
+        .eq('is_alive', true);
+
+      // Count clues submitted in the current round
+      const { count: cluesCount } = await supabase
         .from('clues')
-        .select('player_id')
+        .select('*', { count: 'exact', head: true })
         .eq('round_id', effectiveRoundId);
 
-      const clueCount = allClues?.length || 0;
-      console.log('Total clues after submission:', clueCount, 'Alive players:', alivePlayers.length);
+      console.log('Total clues after submission:', cluesCount, 'Alive players:', totalPlayers);
 
-      if (clueCount >= alivePlayers.length) {
+      if (cluesCount >= totalPlayers) {
         // All players have submitted, move to voting phase
         console.log('All players have submitted clues, moving to voting phase');
         await supabase
           .from('rounds')
           .update({ status: 'voting' })
           .eq('id', effectiveRoundId);
+
+        // Update local state
+        setCurrentRound?.({ ...currentRound, status: 'voting' });
       }
 
       toast({ title: "Pista enviada", description: "Tu pista fue registrada." });
