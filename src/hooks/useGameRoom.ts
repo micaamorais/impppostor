@@ -134,9 +134,10 @@ export const useGameRoom = (roomCode?: string) => {
 
   // Iniciar el juego (solo el host)
   const startGame = async (roomId: string) => {
+    console.log('[DEBUG] startGame iniciado con roomId:', roomId);
     setLoading(true);
     setError(null);
-    
+
     try {
       // Obtener todos los jugadores
       const { data: allPlayers, error: playersError } = await supabase
@@ -149,6 +150,8 @@ export const useGameRoom = (roomCode?: string) => {
         throw new Error('Se necesitan al menos 3 lotsos');
       }
 
+      console.log('[DEBUG] Jugadores obtenidos:', allPlayers.length);
+
       const { data: roomData } = await supabase
         .from('rooms')
         .select('impostor_count')
@@ -157,24 +160,29 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (!roomData) throw new Error('Sala no encontrada');
 
+      console.log('[DEBUG] Datos de sala obtenidos, impostor_count:', roomData.impostor_count);
+
       // Asignar roles aleatoriamente
       const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
       const impostorCount = roomData.impostor_count;
-      
+
       for (let i = 0; i < shuffled.length; i++) {
         const role = i < impostorCount ? 'impostor' : 'player';
         const { error: upErr } = await supabase
           .from('players')
           .update({ role })
           .eq('id', shuffled[i].id);
-        if (upErr) throw new Error(upErr.message);
+        if (upErr) throw new Error(`Error asignando rol a ${shuffled[i].name}: ${upErr.message}`);
       }
+
+      console.log('[DEBUG] Roles asignados correctamente');
 
       // Select secret word for the entire game
       const secretWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-      
+      console.log('[DEBUG] Palabra secreta seleccionada:', secretWord);
+
       // Actualizar estado de la sala con la palabra secreta
-      const { error: roomUpdateErr } = await supabase
+      const { data: updatedRoom, error: roomUpdateErr } = await supabase
         .from('rooms')
         .update({
           status: 'playing',
@@ -183,10 +191,14 @@ export const useGameRoom = (roomCode?: string) => {
           secret_word: secretWord
         })
         .eq('id', roomId)
-        .select('*');
-      if (roomUpdateErr) throw new Error(roomUpdateErr.message);
+        .select('*')
+        .single();
 
-      // Crear primera ronda sin palabra (la palabra está en room)
+      if (roomUpdateErr) throw new Error(`Error actualizando sala: ${roomUpdateErr.message}`);
+
+      console.log('[DEBUG] Sala actualizada a status playing:', updatedRoom);
+
+      // Crear primera ronda
       const { data: firstRound, error: roundError } = await supabase
         .from('rounds')
         .insert({
@@ -198,15 +210,17 @@ export const useGameRoom = (roomCode?: string) => {
         .select('*')
         .single();
 
-      if (roundError) throw new Error(roundError.message);
+      if (roundError) throw new Error(`Error creando primera ronda: ${roundError.message}`);
 
-      console.log('[DEBUG] firstRound creado:', firstRound);
+      console.log('[DEBUG] Primera ronda creada:', firstRound);
 
       // Update local state immediately to ensure GamePhase renders
       setCurrentRound(firstRound);
+      console.log('[DEBUG] Estado local actualizado con primera ronda');
 
       return true;
     } catch (err) {
+      console.error('[DEBUG] Error en startGame:', err);
       setError(err instanceof Error ? err.message : 'Error al iniciar el juego');
       throw err;
     } finally {
