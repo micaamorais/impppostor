@@ -458,11 +458,11 @@ export const useGameRoom = (roomCode?: string) => {
     setError(null);
 
     try {
-      // Resetear todos los jugadores: role = null, is_alive = true
+      // Resetear todos los jugadores: role = 'player', is_alive = true
       const { error: playersResetErr } = await supabase
         .from('players')
         .update({
-          role: null,
+          role: 'player',
           is_alive: true
         })
         .eq('room_id', roomId);
