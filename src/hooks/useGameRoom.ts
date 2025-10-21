@@ -469,14 +469,6 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (playersResetErr) throw new Error(playersResetErr.message);
 
-      // Borrar todas las rondas de esa sala (esto eliminará automáticamente las pistas por CASCADE)
-      const { error: roundsDeleteErr } = await supabase
-        .from('rounds')
-        .delete()
-        .eq('room_id', roomId);
-
-      if (roundsDeleteErr) throw new Error(roundsDeleteErr.message);
-
       // Actualizar estado de la sala a waiting, resetear current_round y limpiar secret_word
       const { error: roomUpdateErr } = await supabase
         .from('rooms')

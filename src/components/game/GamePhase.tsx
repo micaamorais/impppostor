@@ -155,8 +155,6 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhase
         if (myClue && myClue.length > 0) {
           setHasSubmittedClue(true);
           console.log('Player has already submitted clue for round', effectiveRoundId);
-        } else {
-          setHasSubmittedClue(false);
         }
       }
     };
