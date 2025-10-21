@@ -364,17 +364,29 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (!roomData) throw new Error('Sala no encontrada');
 
-      // Asignar roles aleatoriamente y resetear is_alive en una sola operación
+      // Asignar roles aleatoriamente y resetear is_alive en batch
       const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
       const impostorCount = roomData.impostor_count;
+      
+      const impostorIds = shuffled.slice(0, impostorCount).map(p => p.id);
+      const playerIds = shuffled.slice(impostorCount).map(p => p.id);
 
-      for (let i = 0; i < shuffled.length; i++) {
-        const role = i < impostorCount ? 'impostor' : 'player';
-        const { error: upErr } = await supabase
+      // Update all impostors at once
+      if (impostorIds.length > 0) {
+        const { error: impostorErr } = await supabase
           .from('players')
-          .update({ role, is_alive: true })
-          .eq('id', shuffled[i].id);
-        if (upErr) throw new Error(upErr.message);
+          .update({ role: 'impostor', is_alive: true })
+          .in('id', impostorIds);
+        if (impostorErr) throw new Error(impostorErr.message);
+      }
+
+      // Update all regular players at once
+      if (playerIds.length > 0) {
+        const { error: playerErr } = await supabase
+          .from('players')
+          .update({ role: 'player', is_alive: true })
+          .in('id', playerIds);
+        if (playerErr) throw new Error(playerErr.message);
       }
 
       // Select new secret word
