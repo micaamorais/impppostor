@@ -200,6 +200,8 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (roundError) throw new Error(roundError.message);
 
+      console.log('[DEBUG] firstRound creado:', firstRound);
+
       // Update local state immediately to ensure GamePhase renders
       setCurrentRound(firstRound);
 
@@ -456,12 +458,32 @@ export const useGameRoom = (roomCode?: string) => {
     setError(null);
 
     try {
-      // Actualizar estado de la sala a waiting y resetear current_round
+      // Resetear todos los jugadores: role = 'player', is_alive = true
+      const { error: playersResetErr } = await supabase
+        .from('players')
+        .update({
+          role: 'player',
+          is_alive: true
+        })
+        .eq('room_id', roomId);
+
+      if (playersResetErr) throw new Error(playersResetErr.message);
+
+      // Borrar todas las rondas de esa sala (esto eliminará automáticamente las pistas por CASCADE)
+      const { error: roundsDeleteErr } = await supabase
+        .from('rounds')
+        .delete()
+        .eq('room_id', roomId);
+
+      if (roundsDeleteErr) throw new Error(roundsDeleteErr.message);
+
+      // Actualizar estado de la sala a waiting, resetear current_round y limpiar secret_word
       const { error: roomUpdateErr } = await supabase
         .from('rooms')
         .update({
           status: 'waiting',
-          current_round: 0
+          current_round: 0,
+          secret_word: null
         })
         .eq('id', roomId);
 
