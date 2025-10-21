@@ -464,17 +464,20 @@ export const useGameRoom = (roomCode?: string) => {
     setError(null);
 
     try {
-      // Resetear todos los jugadores: role = null, is_alive = true
+      console.log('[DEBUG] exitToLobby: Reseteando jugadores...');
+      // Resetear todos los jugadores: role = 'player', is_alive = true
       const { error: playersResetErr } = await supabase
         .from('players')
         .update({
-          role: null,
+          role: 'player',
           is_alive: true
         })
         .eq('room_id', roomId);
 
       if (playersResetErr) throw new Error(playersResetErr.message);
+      console.log('[DEBUG] exitToLobby: Jugadores reseteados exitosamente');
 
+      console.log('[DEBUG] exitToLobby: Borrando rondas...');
       // Borrar todas las rondas de esa sala (esto eliminará automáticamente las pistas por CASCADE)
       const { error: roundsDeleteErr } = await supabase
         .from('rounds')
@@ -482,7 +485,9 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('room_id', roomId);
 
       if (roundsDeleteErr) throw new Error(roundsDeleteErr.message);
+      console.log('[DEBUG] exitToLobby: Rondas borradas exitosamente');
 
+      console.log('[DEBUG] exitToLobby: Actualizando sala a estado waiting...');
       // Actualizar estado de la sala a waiting, resetear current_round y limpiar secret_word
       const { error: roomUpdateErr } = await supabase
         .from('rooms')
@@ -494,12 +499,15 @@ export const useGameRoom = (roomCode?: string) => {
         .eq('id', roomId);
 
       if (roomUpdateErr) throw new Error(roomUpdateErr.message);
+      console.log('[DEBUG] exitToLobby: Sala actualizada exitosamente');
 
       // Clear local state to avoid remnants from previous round
       setCurrentRound(null);
+      console.log('[DEBUG] exitToLobby: Proceso completado correctamente');
 
       return true;
     } catch (err) {
+      console.error('[ERROR] exitToLobby:', err);
       setError(err instanceof Error ? err.message : 'Error al salir al lobby');
       throw err;
     } finally {
