@@ -364,13 +364,7 @@ export const useGameRoom = (roomCode?: string) => {
 
       if (!roomData) throw new Error('Sala no encontrada');
 
-      // Resetear is_alive para todos los jugadores
-      await supabase
-        .from('players')
-        .update({ is_alive: true })
-        .eq('room_id', roomId);
-
-      // Asignar roles aleatoriamente
+      // Asignar roles aleatoriamente y resetear is_alive en una sola operación
       const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
       const impostorCount = roomData.impostor_count;
 
@@ -378,7 +372,7 @@ export const useGameRoom = (roomCode?: string) => {
         const role = i < impostorCount ? 'impostor' : 'player';
         const { error: upErr } = await supabase
           .from('players')
-          .update({ role })
+          .update({ role, is_alive: true })
           .eq('id', shuffled[i].id);
         if (upErr) throw new Error(upErr.message);
       }
