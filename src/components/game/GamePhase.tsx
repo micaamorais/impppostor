@@ -39,10 +39,9 @@ type GamePhaseProps = {
   currentRound: Round;
   players: Player[];
   currentPlayerId: string | null;
-  setCurrentRound?: (round: Round) => void;
 };
 
-const GamePhase = ({ roomId, currentRound, players, currentPlayerId, setCurrentRound }: GamePhaseProps) => {
+const GamePhase = ({ roomId, currentRound, players, currentPlayerId }: GamePhaseProps) => {
   const [clue, setClue] = useState("");
   const [clues, setClues] = useState<Clue[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
@@ -291,31 +290,22 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId, setCurrentR
       setHasSubmittedClue(true);
       setClue("");
 
-      // Count alive players in the room
-      const { count: totalPlayers } = await supabase
-        .from('players')
-        .select('*', { count: 'exact', head: true })
-        .eq('room_id', roomId)
-        .eq('is_alive', true);
-
-      // Count clues submitted in the current round
-      const { count: cluesCount } = await supabase
+      // Get updated clues to check if all have submitted
+      const { data: allClues } = await supabase
         .from('clues')
-        .select('*', { count: 'exact', head: true })
+        .select('player_id')
         .eq('round_id', effectiveRoundId);
 
-      console.log('Total clues after submission:', cluesCount, 'Alive players:', totalPlayers);
+      const clueCount = allClues?.length || 0;
+      console.log('Total clues after submission:', clueCount, 'Alive players:', alivePlayers.length);
 
-      if (cluesCount >= totalPlayers) {
+      if (clueCount >= alivePlayers.length) {
         // All players have submitted, move to voting phase
         console.log('All players have submitted clues, moving to voting phase');
         await supabase
           .from('rounds')
           .update({ status: 'voting' })
           .eq('id', effectiveRoundId);
-
-        // Update local state
-        setCurrentRound?.({ ...currentRound, status: 'voting' });
       }
 
       toast({ title: "Pista enviada", description: "Tu pista fue registrada." });
@@ -571,60 +561,6 @@ const GamePhase = ({ roomId, currentRound, players, currentPlayerId, setCurrentR
           <div className="text-center space-y-4">
             <h3 className="text-2xl font-bold">¡Hora de votar!</h3>
             <p className="text-lg">¿Quién crees que es el prepustor?</p>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <h4 className="text-xl font-bold mb-4">Pistas de todos:</h4>
-          <div className="space-y-3">
-            {alivePlayers.map((player) => {
-              const playerClue = clues.find(c => c.player_id === player.id);
-              return (
-                <div
-                  key={player.id}
-                  className="p-4 bg-background rounded-lg border-2 border-border space-y-2"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold">{player.name}</span>
-                    {!hasVoted && currentPlayer?.is_alive && player.id !== currentPlayerId && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleVote(player.id)}
-                      >
-                        Votar
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground">
-                    Pista: {playerClue?.clue_text || "No envió pista"}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        {hasVoted && (
-          <Card className="p-6 text-center">
-            <p className="text-lg">Voto registrado. Esperando resultados...</p>
-            <p className="text-muted-foreground mt-2">
-              {votes.length} / {alivePlayers.length} votos
-            </p>
-          </Card>
-        )}
-      </div>
-    );
-  }
-
-  // Fase de votación
-  if (currentRound.status === 'voting') {
-    return (
-      <div className="space-y-6">
-        <Card className="p-6 bg-gradient-to-br from-destructive/20 to-primary/20">
-          <div className="text-center space-y-4">
-            <h3 className="text-2xl font-bold">Fase de votación</h3>
-            <p className="text-lg">Lee las pistas y vota quién crees que es el impostor</p>
           </div>
         </Card>
 
